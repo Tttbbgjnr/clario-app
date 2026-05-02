@@ -325,8 +325,16 @@ function openDispute(id){activeId=id;document.getElementById('dispute-modal').st
 async function submitDelivery(){
   const link=document.getElementById('delivery-link-input').value.trim();
   if(!link)return alert("Enter a delivery link");
+  if(!contract)return alert("Wallet not connected. Please reconnect your wallet.");
+  if(!activeId)return alert("No escrow selected.");
+  const id=activeId;
   closeModal('delivery-modal');
-  try{const tx=await contract.submitDelivery(activeId,link);showTx(tx.hash);await tx.wait();await loadEscrows();}catch(e){alert(e.reason||e.message);}
+  try{
+    const tx=await contract.submitDelivery(id,link);
+    showTx(tx.hash);
+    await tx.wait();
+    await loadEscrows();
+  }catch(e){alert(e.reason||e.message);}
 }
 
 async function releasePayment(id){
