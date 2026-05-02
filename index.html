@@ -7,7 +7,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js">
 function renderArbitrator(){
   const el=document.getElementById('arbitrator-list');
+  // Show ALL disputed escrows regardless of role filter
   const disputed=escrows.filter(e=>e.status===3);
+  console.log("All escrows:", escrows.length, "Disputed:", disputed.length);
   if(!disputed.length){
     el.innerHTML='<div class="empty"><div class="empty-icon">⚖</div><div class="empty-title">No disputes</div><div class="empty-sub">All clear — no active disputes</div></div>';
     return;
@@ -326,13 +328,15 @@ async function loadEscrows(){
   try{
     const count=Number(await contract.escrowCount());
     escrows=[];
-    for(let i=1;i<=count;i++){
+    for(let i=count;i>=1;i--){
       try{
         const e=await contract.getEscrow(i);
-        escrows.unshift({id:Number(e.id),client:e.client,freelancer:e.freelancer,amount:Number(ethers.formatUnits(e.amount,USDC_DECIMALS)),deadline:new Date(Number(e.deadline)*1000).toLocaleDateString(),autoReleaseTime:Number(e.autoReleaseTime),status:Number(e.status),description:e.description,deliveryLink:e.deliveryLink});
-      }catch(e){console.warn(e);}
+        escrows.push({id:Number(e.id),client:e.client,freelancer:e.freelancer,amount:Number(ethers.formatUnits(e.amount,USDC_DECIMALS)),deadline:new Date(Number(e.deadline)*1000).toLocaleDateString(),autoReleaseTime:Number(e.autoReleaseTime),status:Number(e.status),description:e.description,deliveryLink:e.deliveryLink});
+      }catch(err){console.warn(err);}
     }
     renderEscrows();updateStats();
+    // refresh arbitrator panel if open
+    if(document.getElementById('view-arbitrator').style.display==='block') renderArbitrator();
   }catch(e){document.getElementById('escrow-list').innerHTML='<div class="empty"><div class="empty-title">Error loading</div><div class="empty-sub">'+e.message+'</div></div>';}
 }
 
@@ -428,7 +432,9 @@ async function raiseDispute(){
 
 function renderArbitrator(){
   const el=document.getElementById('arbitrator-list');
+  // Show ALL disputed escrows regardless of role filter
   const disputed=escrows.filter(e=>e.status===3);
+  console.log("All escrows:", escrows.length, "Disputed:", disputed.length);
   if(!disputed.length){
     el.innerHTML='<div class="empty"><div class="empty-icon">⚖</div><div class="empty-title">No disputes</div><div class="empty-sub">All clear — no active disputes</div></div>';
     return;
