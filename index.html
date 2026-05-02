@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Clario — Trustless Freelance Escrow on Arc</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js">
+function debugArbitrator(){
+  const el=document.getElementById('arb-debug');
+  el.innerHTML='Total escrows loaded: '+escrows.length+'<br>'+escrows.map(e=>'ESC-'+e.id+' status='+e.status+(e.status===3?' ← DISPUTED':'')).join('<br>');
+}
+
 function renderArbitrator(){
   const el=document.getElementById('arbitrator-list');
   // Show ALL disputed escrows regardless of role filter
@@ -249,6 +254,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="view-arbitrator" style="display:none;">
     <div style="background:#1a0000;border:1px solid #3d0000;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#f87171;font-weight:600;">⚖ Arbitrator Panel — Only visible to you. Resolve disputed escrows below.</div>
     <div class="section-title">Disputed Escrows</div>
+    <button onclick="debugArbitrator()" style="background:#1a0000;border:1px solid #3d0000;color:#f87171;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px;">Debug — Check Escrows</button>
+    <div id="arb-debug" style="font-family:monospace;font-size:11px;color:#f87171;margin-bottom:12px;"></div>
     <div id="arbitrator-list"></div>
   </div>
 
@@ -428,6 +435,11 @@ async function raiseDispute(){
     await tx.wait();
     await loadEscrows();
   }catch(e){alert(e.reason||e.message);}
+}
+
+function debugArbitrator(){
+  const el=document.getElementById('arb-debug');
+  el.innerHTML='Total escrows loaded: '+escrows.length+'<br>'+escrows.map(e=>'ESC-'+e.id+' status='+e.status+(e.status===3?' ← DISPUTED':'')).join('<br>');
 }
 
 function renderArbitrator(){
