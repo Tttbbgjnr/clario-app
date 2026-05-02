@@ -290,14 +290,14 @@ const BADGE=['badge-active','badge-delivered','badge-completed','badge-disputed'
 let wallet=null,contract=null,usdc=null,role='client',escrows=[],activeId=null;
 
 function setRole(r){role=r;document.getElementById('role-client').className='nav-btn'+(r==='client'?' active':'');document.getElementById('role-freelancer').className='nav-btn'+(r==='freelancer'?' active':'');document.getElementById('list-title').textContent=r==='client'?'Your Escrows as Client':'Your Escrows as Freelancer';renderEscrows();}
-function switchTab(t){
+async function switchTab(t){
   document.getElementById('view-list').style.display=t==='list'?'block':'none';
   document.getElementById('view-create').style.display=t==='create'?'block':'none';
   document.getElementById('view-arbitrator').style.display=t==='arbitrator'?'block':'none';
   document.getElementById('tab-list').className='tab'+(t==='list'?' active':'');
   document.getElementById('tab-create').className='tab'+(t==='create'?' active':'');
   document.getElementById('tab-arbitrator').className='tab'+(t==='arbitrator'?' active':'');
-  if(t==='arbitrator') renderArbitrator();
+  if(t==='arbitrator'){ await loadEscrows(); renderArbitrator(); }
 }
 function updateHint(){const a=parseFloat(document.getElementById('f-amount').value);const h=document.getElementById('form-hint');if(a>0){h.style.display='block';const fee=(a*0.01).toFixed(2);document.getElementById('fh-deposit').textContent=a.toFixed(2)+' USDC';document.getElementById('fh-recv').textContent=(a-parseFloat(fee)).toFixed(2)+' USDC';document.getElementById('fh-fee').textContent=fee+' USDC';}else{h.style.display='none';}}
 function closeModal(id){document.getElementById(id).style.display='none';activeId=null;}
