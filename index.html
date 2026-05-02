@@ -338,7 +338,13 @@ async function submitDelivery(){
 }
 
 async function releasePayment(id){
-  try{const tx=await contract.releasePayment(id);showTx(tx.hash);await tx.wait();await loadEscrows();}catch(e){alert(e.reason||e.message);}
+  if(!contract)return alert("Wallet not connected. Please reconnect your wallet.");
+  try{
+    const tx=await contract.releasePayment(id);
+    showTx(tx.hash);
+    await tx.wait();
+    await loadEscrows();
+  }catch(e){alert(e.reason||e.message);}
 }
 
 async function autoRelease(id){
@@ -346,8 +352,16 @@ async function autoRelease(id){
 }
 
 async function raiseDispute(){
+  if(!contract)return alert("Wallet not connected. Please reconnect your wallet.");
+  if(!activeId)return alert("No escrow selected.");
+  const id=activeId;
   closeModal('dispute-modal');
-  try{const tx=await contract.raiseDispute(activeId);showTx(tx.hash);await tx.wait();await loadEscrows();}catch(e){alert(e.reason||e.message);}
+  try{
+    const tx=await contract.raiseDispute(id);
+    showTx(tx.hash);
+    await tx.wait();
+    await loadEscrows();
+  }catch(e){alert(e.reason||e.message);}
 }
 </script>
 </body>
