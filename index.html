@@ -4,71 +4,20 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Clario — Trustless Freelance Escrow on Arc</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js">
-function debugArbitrator(){
-  const el=document.getElementById('arb-debug');
-  el.innerHTML='Total escrows loaded: '+escrows.length+'<br>'+escrows.map(e=>'ESC-'+e.id+' status='+e.status+(e.status===3?' ← DISPUTED':'')).join('<br>');
-}
-
-function renderArbitrator(){
-  const el=document.getElementById('arbitrator-list');
-  // Show ALL disputed escrows regardless of role filter
-  const disputed=escrows.filter(e=>e.status===3);
-  console.log("All escrows:", escrows.length, "Disputed:", disputed.length);
-  if(!disputed.length){
-    el.innerHTML='<div class="empty"><div class="empty-icon">⚖</div><div class="empty-title">No disputes</div><div class="empty-sub">All clear — no active disputes</div></div>';
-    return;
-  }
-  el.innerHTML=disputed.map(e=>`
-    <div class="card" style="border-color:#3d0000;">
-      <div class="card-header">
-        <div>
-          <div class="escrow-id">ESC-${String(e.id).padStart(4,'0')}</div>
-          <div class="escrow-desc">${e.description}</div>
-        </div>
-        <span class="badge badge-disputed">DISPUTED</span>
-      </div>
-      <div class="grid3">
-        <div class="cell"><div class="cell-label">Amount</div><div class="cell-val">${e.amount.toFixed(2)} USDC</div></div>
-        <div class="cell"><div class="cell-label">Client</div><div class="cell-val" style="font-size:10px;">${e.client.slice(0,10)}...${e.client.slice(-4)}</div></div>
-        <div class="cell"><div class="cell-label">Freelancer</div><div class="cell-val" style="font-size:10px;">${e.freelancer.slice(0,10)}...${e.freelancer.slice(-4)}</div></div>
-      </div>
-      ${e.deliveryLink?`<div class="delivery-box"><div class="delivery-label">Freelancer delivery</div><div class="delivery-link"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:'<div style="font-size:12px;color:var(--text4);margin-bottom:12px;">No delivery submitted</div>'}
-      <div class="card-actions">
-        <button class="btn btn-green" onclick="resolveDispute(${e.id}, true)">✓ Favor Freelancer — Pay them</button>
-        <button class="btn btn-red" onclick="resolveDispute(${e.id}, false)">✗ Favor Client — Refund them</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function resolveDispute(id, favorFreelancer){
-  if(!contract)return alert("Wallet not connected");
-  const side = favorFreelancer ? "freelancer" : "client";
-  if(!confirm("Are you sure? This will resolve in favor of the "+side+". This cannot be undone."))return;
-  try{
-    const tx=await contract.resolveDispute(id, favorFreelancer);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-    renderArbitrator();
-    alert("Dispute resolved successfully!");
-  }catch(e){alert(e.reason||e.message);}
-}
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#000;--bg2:#0a0a0a;--bg3:#111;
+  --bg:#000;--bg2:#0a0a0a;
   --green:#22c55e;--green2:#16a34a;--green3:#166534;--green4:#0d3d1a;--green5:#061a06;
   --border:#0d2d0d;--border2:#1a3a1a;
   --text:#f0fff0;--text2:#a0c0a0;--text3:#4d8c4d;--text4:#2a5c2a;
   --amber:#f59e0b;--blue:#60a5fa;--red:#f87171;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-.app{display:flex;flex-direction:column;min-height:100vh;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+/* HEADER */
 .header{background:var(--bg);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;height:60px;gap:12px;position:sticky;top:0;z-index:100;}
 .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--green3),var(--green2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;}
 .logo-text{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;}
@@ -79,28 +28,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .connect-btn{background:var(--green3);color:var(--green);border:1px solid var(--green2);font-size:13px;font-weight:700;padding:8px 20px;border-radius:6px;cursor:pointer;}
 .connect-btn:hover{background:var(--green2);}
 .wallet-chip{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);background:var(--green5);border:1px solid var(--green4);padding:8px 14px;border-radius:6px;}
+
+/* HERO */
 .hero{padding:48px 32px;border-bottom:1px solid var(--border);}
 .hero-title{font-family:'Syne',sans-serif;font-size:40px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:12px;letter-spacing:-1px;}
 .hero-title span{color:var(--green);}
 .hero-sub{font-size:15px;color:var(--text3);line-height:1.7;max-width:560px;font-weight:500;margin-bottom:20px;}
 .hero-pills{display:flex;gap:8px;flex-wrap:wrap;}
 .pill{font-size:11px;font-weight:600;padding:5px 14px;border-radius:20px;background:var(--green5);color:var(--green);border:1px solid var(--green4);}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg2);border-bottom:1px solid var(--border);}
-.stat{padding:20px 32px;border-right:1px solid var(--border);}
-.stat:last-child{border-right:none;}
-.stat-num{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--green);line-height:1;}
-.stat-label{font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;}
+
+/* PERSONAL STATS */
+.personal-stats{display:none;background:var(--bg);border-bottom:1px solid var(--border);}
+.personal-stats-inner{display:grid;grid-template-columns:repeat(4,1fr);}
+.pstat{padding:24px 32px;border-right:1px solid var(--border);}
+.pstat:last-child{border-right:none;}
+.pstat-num{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--green);line-height:1;}
+.pstat-label{font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;}
+
+/* TABS */
 .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg);padding:0 32px;}
 .tab{font-size:13px;font-weight:700;padding:16px 20px;border:none;background:transparent;color:var(--text4);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color 0.15s;}
 .tab:hover{color:var(--text2);}
 .tab.active{color:var(--green);border-bottom-color:var(--green);}
 .tab-right{margin-left:auto;}
-.body{padding:32px;max-width:900px;margin:0 auto;width:100%;}
+
+/* BODY */
+.body{padding:32px;max-width:900px;margin:0 auto;width:100%;flex:1;}
+
+/* INFO BANNER */
 .info-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;}
 .info-item{background:var(--bg2);padding:20px 24px;}
 .info-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--green);}
 .info-desc{font-size:12px;font-weight:600;color:var(--text4);margin-top:4px;line-height:1.5;}
 .section-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;}
+
+/* CARDS */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px;transition:border-color 0.15s;}
 .card:hover{border-color:var(--border2);}
 .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
@@ -126,10 +88,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .btn-green:hover{background:var(--green3);}
 .btn-red{background:#1a0000;color:var(--red);border:1px solid #3d0000;}
 .btn-red:hover{background:#2a0000;}
+
+/* FORM */
 .form-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px;}
 .form-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;margin-bottom:22px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.form-group{margin-bottom:0;}
 .form-group.full{grid-column:1/-1;}
 .flabel{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:7px;}
 .finput{width:100%;font-size:14px;font-family:'DM Sans',sans-serif;padding:11px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s;}
@@ -140,164 +103,176 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .fhint-row:last-child{border-bottom:none;padding-top:10px;margin-top:4px;}
 .fhint-key{font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.5px;}
 .fhint-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--green);}
-.approve-notice{background:#1a1000;border:1px solid #3d2800;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--amber);font-weight:600;margin-top:16px;}
+.approve-notice{background:#1a1000;border:1px solid #3d2800;border-radius:8px;padding:12px 16px;font-size:12px;color:var(--amber);font-weight:600;margin-top:16px;}
 .btn-submit{width:100%;padding:14px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;background:var(--green3);color:var(--green);border:1px solid var(--green2);border-radius:8px;cursor:pointer;letter-spacing:0.3px;margin-top:16px;}
 .btn-submit:hover{background:var(--green2);}
 .btn-submit:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* EMPTY */
 .empty{text-align:center;padding:80px 20px;}
 .empty-icon{font-size:40px;margin-bottom:16px;}
 .empty-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--green4);margin-bottom:8px;}
 .empty-sub{font-size:14px;color:var(--text4);font-weight:500;}
+
+/* TX */
 .tx-bar{background:var(--green5);border:1px solid var(--green4);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);word-break:break-all;margin-top:16px;}
 .tx-bar a{color:#4dbb6e;}
 .loading{text-align:center;padding:50px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);}
+
+/* MODALS */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;}
 .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:100%;max-width:440px;}
 .modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:18px;}
 .modal-actions{display:flex;gap:10px;margin-top:18px;}
+
+/* FOOTER */
+.footer{background:var(--green5);border-top:1px solid var(--border);padding:14px 32px;display:none;flex-direction:row;align-items:center;gap:24px;flex-wrap:wrap;}
+.footer-item{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4);}
+.footer-item span{color:var(--green);}
+.footer-brand{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4);margin-left:auto;}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="header">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="logo-icon">C</div>
-      <span class="logo-text">Clario</span>
-      <span class="logo-badge">ARC TESTNET</span>
-    </div>
-    <div class="header-right">
-      <button class="nav-btn active" onclick="setRole('client')" id="role-client">Client</button>
-      <button class="nav-btn" onclick="setRole('freelancer')" id="role-freelancer">Freelancer</button>
-      <div id="wallet-area">
-        <button class="connect-btn" onclick="connectWallet()">Connect Wallet</button>
-      </div>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="logo-icon">C</div>
+    <span class="logo-text">Clario</span>
+    <span class="logo-badge">ARC TESTNET</span>
+  </div>
+  <div class="header-right">
+    <button class="nav-btn active" onclick="setRole('client')" id="role-client">Client</button>
+    <button class="nav-btn" onclick="setRole('freelancer')" id="role-freelancer">Freelancer</button>
+    <div id="wallet-area">
+      <button class="connect-btn" onclick="connectWallet()">Connect Wallet</button>
     </div>
   </div>
+</div>
 
-  <div class="hero">
-    <div class="hero-title">Trustless payments for<br><span>freelancers & clients.</span></div>
-    <div class="hero-sub">Clario escrows your USDC on Arc. Clients can't ghost. Freelancers can't be scammed. Disputes settled on-chain. Built on Circle's Arc network.</div>
-    <div class="hero-pills">
-      <span class="pill">✓ USDC Escrow</span>
-      <span class="pill">✓ Dispute Resolution</span>
-      <span class="pill">✓ Auto-Release in 3 days</span>
-      <span class="pill">✓ 1% Protocol Fee</span>
-      <span class="pill">✓ Sub-second Finality</span>
+<div class="hero">
+  <div class="hero-title">Trustless payments for<br><span>freelancers & clients.</span></div>
+  <div class="hero-sub">Clario escrows your USDC on Arc. Clients can't ghost. Freelancers can't be scammed. Disputes settled on-chain. Built on Circle's Arc network.</div>
+  <div class="hero-pills">
+    <span class="pill">✓ USDC Escrow</span>
+    <span class="pill">✓ Dispute Resolution</span>
+    <span class="pill">✓ Auto-Release in 3 days</span>
+    <span class="pill">✓ 1% Protocol Fee</span>
+    <span class="pill">✓ Sub-second Finality</span>
+  </div>
+</div>
+
+<!-- PERSONAL STATS — shows when wallet connected -->
+<div class="personal-stats" id="personal-stats">
+  <div class="personal-stats-inner">
+    <div class="pstat"><div class="pstat-num" id="p-total">0</div><div class="pstat-label">Your Escrows</div></div>
+    <div class="pstat"><div class="pstat-num" id="p-active">0</div><div class="pstat-label">Active</div></div>
+    <div class="pstat"><div class="pstat-num" id="p-completed">0</div><div class="pstat-label">Completed</div></div>
+    <div class="pstat"><div class="pstat-num" id="p-volume">0</div><div class="pstat-label">USDC Volume</div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('list')" id="tab-list">All Escrows</button>
+  <button class="tab" onclick="switchTab('create')" id="tab-create">+ New Escrow</button>
+  <button class="tab" onclick="switchTab('arbitrator')" id="tab-arbitrator" style="display:none;">⚖ Arbitrator</button>
+  <button class="tab tab-right" onclick="loadEscrows()" id="tab-refresh" style="display:none;">↻ Refresh</button>
+</div>
+
+<div class="body">
+
+  <!-- LIST VIEW -->
+  <div id="view-list">
+    <div class="info-banner">
+      <div class="info-item"><div class="info-num">100%</div><div class="info-desc">Funds locked before work begins</div></div>
+      <div class="info-item"><div class="info-num">3 days</div><div class="info-desc">Auto-release if client goes silent</div></div>
+      <div class="info-item"><div class="info-num">1%</div><div class="info-desc">Protocol fee on settled escrows</div></div>
     </div>
+    <div class="section-title" id="list-title">All Escrows</div>
+    <div class="empty" id="empty-state">
+      <div class="empty-icon">◈</div>
+      <div class="empty-title">No escrows yet</div>
+      <div class="empty-sub">Connect your wallet to get started</div>
+    </div>
+    <div id="escrow-list"></div>
   </div>
 
-  <!-- Personal stats — big and bold, only shows when wallet connected -->
-  <div id="personal-stats" style="display:none;background:#000;border-bottom:1px solid #0d2d0d;">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);">
-      <div style="padding:24px 32px;border-right:1px solid #0d2d0d;">
-        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#22c55e;line-height:1;" id="p-total">0</div>
-        <div style="font-size:11px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;">Your Escrows</div>
-      </div>
-      <div style="padding:24px 32px;border-right:1px solid #0d2d0d;">
-        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#22c55e;line-height:1;" id="p-active">0</div>
-        <div style="font-size:11px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;">Active</div>
-      </div>
-      <div style="padding:24px 32px;border-right:1px solid #0d2d0d;">
-        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#22c55e;line-height:1;" id="p-completed">0</div>
-        <div style="font-size:11px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;">Completed</div>
-      </div>
-      <div style="padding:24px 32px;">
-        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#22c55e;line-height:1;" id="p-earnings">0</div>
-        <div style="font-size:11px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;">USDC Volume</div>
-      </div>
-    </div>
-  </div>
-
-
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('list')" id="tab-list">All Escrows</button>
-    <button class="tab" onclick="switchTab('create')" id="tab-create">+ New Escrow</button>
-    <button class="tab" onclick="switchTab('arbitrator')" id="tab-arbitrator" style="display:none;">⚖ Arbitrator</button>
-    <button class="tab tab-right" onclick="loadEscrows()" id="tab-refresh" style="display:none;">↻ Refresh</button>
-  </div>
-
-  <div class="body">
-    <div id="view-list">
-      <div class="info-banner">
-        <div class="info-item"><div class="info-num">100%</div><div class="info-desc">Funds locked before work begins</div></div>
-        <div class="info-item"><div class="info-num">3 days</div><div class="info-desc">Auto-release if client goes silent</div></div>
-        <div class="info-item"><div class="info-num">1%</div><div class="info-desc">Protocol fee on settled escrows</div></div>
-      </div>
-      <div class="section-title" id="list-title">All Escrows</div>
-      <div class="empty" id="empty-state">
-        <div class="empty-icon">◈</div>
-        <div class="empty-title">No escrows yet</div>
-        <div class="empty-sub">Connect your wallet to get started</div>
-      </div>
-      <div id="escrow-list"></div>
-    </div>
-
-    <div id="view-create" style="display:none;">
-      <div class="form-card">
-        <div class="form-title">Create New Escrow</div>
-        <div class="form-grid">
-          <div class="form-group full">
-            <label class="flabel">Describe the work</label>
-            <input class="finput" type="text" id="f-desc" placeholder="e.g. Logo design for Acme Corp"/>
-          </div>
-          <div class="form-group full">
-            <label class="flabel">Freelancer Wallet Address</label>
-            <input class="finput" type="text" id="f-freelancer" placeholder="0x..."/>
-          </div>
-          <div class="form-group">
-            <label class="flabel">Amount (USDC)</label>
-            <input class="finput" type="number" id="f-amount" placeholder="50" oninput="updateHint()"/>
-          </div>
-          <div class="form-group">
-            <label class="flabel">Days Until Deadline</label>
-            <input class="finput" type="number" id="f-days" placeholder="7"/>
-          </div>
+  <!-- CREATE VIEW -->
+  <div id="view-create" style="display:none;">
+    <div class="form-card">
+      <div class="form-title">Create New Escrow</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="flabel">Describe the work</label>
+          <input class="finput" type="text" id="f-desc" placeholder="e.g. Logo design for Acme Corp"/>
         </div>
-        <div id="form-hint" style="display:none;" class="fhint">
-          <div class="fhint-row"><span class="fhint-key">You deposit</span><span class="fhint-val" id="fh-deposit">—</span></div>
-          <div class="fhint-row"><span class="fhint-key">Freelancer receives</span><span class="fhint-val" id="fh-recv">—</span></div>
-          <div class="fhint-row"><span class="fhint-key">Clario fee (1%)</span><span class="fhint-val" id="fh-fee">—</span></div>
-          <div class="fhint-row"><span class="fhint-key">Auto-release after delivery</span><span class="fhint-val">3 days</span></div>
+        <div class="form-group full">
+          <label class="flabel">Freelancer Wallet Address</label>
+          <input class="finput" type="text" id="f-freelancer" placeholder="0x..."/>
         </div>
-        <div class="approve-notice">⚠️ Two MetaMask confirmations — first to approve USDC, second to create the escrow.</div>
-        <button class="btn-submit" id="btn-create" onclick="createEscrow()">→ Lock Funds & Create Escrow</button>
+        <div class="form-group">
+          <label class="flabel">Amount (USDC)</label>
+          <input class="finput" type="number" id="f-amount" placeholder="50" oninput="updateHint()"/>
+        </div>
+        <div class="form-group">
+          <label class="flabel">Days Until Deadline</label>
+          <input class="finput" type="number" id="f-days" placeholder="7"/>
+        </div>
       </div>
+      <div id="form-hint" style="display:none;" class="fhint">
+        <div class="fhint-row"><span class="fhint-key">You deposit</span><span class="fhint-val" id="fh-deposit">—</span></div>
+        <div class="fhint-row"><span class="fhint-key">Freelancer receives</span><span class="fhint-val" id="fh-recv">—</span></div>
+        <div class="fhint-row"><span class="fhint-key">Clario fee (1%)</span><span class="fhint-val" id="fh-fee">—</span></div>
+        <div class="fhint-row"><span class="fhint-key">Auto-release after delivery</span><span class="fhint-val">3 days</span></div>
+      </div>
+      <div class="approve-notice">⚠️ Two MetaMask confirmations — first to approve USDC, second to create the escrow.</div>
+      <button class="btn-submit" id="btn-create" onclick="createEscrow()">→ Lock Funds & Create Escrow</button>
     </div>
-
-    <div id="tx-bar" style="display:none;"></div>
   </div>
 
+  <!-- ARBITRATOR VIEW -->
   <div id="view-arbitrator" style="display:none;">
     <div style="background:#1a0000;border:1px solid #3d0000;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#f87171;font-weight:600;">⚖ Arbitrator Panel — Only visible to you. Resolve disputed escrows below.</div>
     <div class="section-title">Disputed Escrows</div>
-    <button onclick="debugArbitrator()" style="background:#1a0000;border:1px solid #3d0000;color:#f87171;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px;">Debug — Check Escrows</button>
-    <div id="arb-debug" style="font-family:monospace;font-size:11px;color:#f87171;margin-bottom:12px;"></div>
     <div id="arbitrator-list"></div>
   </div>
 
-  <div class="modal-overlay" id="delivery-modal" style="display:none;">
-    <div class="modal">
-      <div class="modal-title">Submit Your Delivery</div>
-      <div class="form-group">
-        <label class="flabel">Link to your work</label>
-        <input class="finput" type="text" id="delivery-link-input" placeholder="https://drive.google.com/..."/>
-      </div>
-      <div style="font-size:12px;color:var(--text4);margin-top:8px;">Share a Google Drive, Figma, GitHub or any link to your completed work.</div>
-      <div class="modal-actions">
-        <button class="btn btn-green" style="flex:1;" onclick="submitDelivery()">Submit Delivery</button>
-        <button class="btn btn-red" onclick="closeModal('delivery-modal')">Cancel</button>
-      </div>
+  <div id="tx-bar" style="display:none;"></div>
+</div>
+
+<!-- FOOTER — platform stats -->
+<div class="footer" id="platform-footer">
+  <span class="footer-item">◈ Clario Network</span>
+  <span class="footer-item">Total: <span id="s-total">—</span></span>
+  <span class="footer-item">Active: <span id="s-active">—</span></span>
+  <span class="footer-item">Completed: <span id="s-completed">—</span></span>
+  <span class="footer-item">Disputed: <span id="s-disputed">—</span></span>
+  <span class="footer-brand">Built on Arc · Powered by Circle USDC</span>
+</div>
+
+<!-- DELIVERY MODAL -->
+<div class="modal-overlay" id="delivery-modal" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Submit Your Delivery</div>
+    <div>
+      <label class="flabel">Link to your work</label>
+      <input class="finput" type="text" id="delivery-link-input" placeholder="https://drive.google.com/..."/>
+    </div>
+    <div style="font-size:12px;color:var(--text4);margin-top:8px;">Share a Google Drive, Figma, GitHub or any link to your completed work.</div>
+    <div class="modal-actions">
+      <button class="btn btn-green" style="flex:1;" onclick="submitDelivery()">Submit Delivery</button>
+      <button class="btn btn-red" onclick="closeModal('delivery-modal')">Cancel</button>
     </div>
   </div>
+</div>
 
-  <div class="modal-overlay" id="dispute-modal" style="display:none;">
-    <div class="modal">
-      <div class="modal-title">Raise a Dispute</div>
-      <div style="font-size:14px;color:var(--text2);line-height:1.7;">A Clario arbitrator will review both sides and decide the outcome. This action cannot be undone. Make sure you have a valid reason before proceeding.</div>
-      <div class="modal-actions">
-        <button class="btn btn-red" style="flex:1;" onclick="raiseDispute()">Confirm — Raise Dispute</button>
-        <button class="btn btn-green" onclick="closeModal('dispute-modal')">Cancel</button>
-      </div>
+<!-- DISPUTE MODAL -->
+<div class="modal-overlay" id="dispute-modal" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Raise a Dispute</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.7;">A Clario arbitrator will review both sides and decide the outcome. This cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="btn btn-red" style="flex:1;" onclick="raiseDispute()">Confirm — Raise Dispute</button>
+      <button class="btn btn-green" onclick="closeModal('dispute-modal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -305,29 +280,66 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <script>
 const CONTRACT="0xB1628a2b7536950833AC18681814dBD7466d7B36";
 const USDC_ADDR="0x3600000000000000000000000000000000000000";
+const ARBITRATOR="0x8ce69aef566ce2755672cc27739df4d43a0a6b3f";
 const USDC_DECIMALS=6;
-const ABI=["function createEscrow(address,uint256,uint256,string) external","function submitDelivery(uint256,string) external","function releasePayment(uint256) external","function autoRelease(uint256) external","function raiseDispute(uint256) external","function refund(uint256) external","function getEscrow(uint256) external view returns (tuple(uint256 id,address client,address freelancer,uint256 amount,uint256 deadline,uint256 autoReleaseTime,uint8 status,string description,string deliveryLink))","function escrowCount() external view returns (uint256)"];
-const USDC_ABI=["function approve(address,uint256) external returns (bool)","function allowance(address,address) external view returns (uint256)","function balanceOf(address) external view returns (uint256)"];
+const ABI=[
+  "function createEscrow(address,uint256,uint256,string) external",
+  "function submitDelivery(uint256,string) external",
+  "function releasePayment(uint256) external",
+  "function autoRelease(uint256) external",
+  "function raiseDispute(uint256) external",
+  "function resolveDispute(uint256,bool) external",
+  "function refund(uint256) external",
+  "function getEscrow(uint256) external view returns (tuple(uint256 id,address client,address freelancer,uint256 amount,uint256 deadline,uint256 autoReleaseTime,uint8 status,string description,string deliveryLink))",
+  "function escrowCount() external view returns (uint256)"
+];
+const USDC_ABI=[
+  "function approve(address,uint256) external returns (bool)",
+  "function allowance(address,address) external view returns (uint256)"
+];
 const STATUS=['Active','Delivered','Completed','Disputed','Refunded'];
 const BADGE=['badge-active','badge-delivered','badge-completed','badge-disputed','badge-refunded'];
 let wallet=null,contract=null,usdc=null,role='client',escrows=[],activeId=null;
 
-function setRole(r){role=r;document.getElementById('role-client').className='nav-btn'+(r==='client'?' active':'');document.getElementById('role-freelancer').className='nav-btn'+(r==='freelancer'?' active':'');document.getElementById('list-title').textContent=r==='client'?'Your Escrows as Client':'Your Escrows as Freelancer';renderEscrows();}
-async async function switchTab(t){
-  document.getElementById('view-list').style.display=t==='list'?'block':'none';
-  document.getElementById('view-create').style.display=t==='create'?'block':'none';
-  document.getElementById('view-arbitrator').style.display=t==='arbitrator'?'block':'none';
-  document.getElementById('tab-list').className='tab'+(t==='list'?' active':'');
-  document.getElementById('tab-create').className='tab'+(t==='create'?' active':'');
-  document.getElementById('tab-arbitrator').className='tab'+(t==='arbitrator'?' active':'');
-  if(t==='arbitrator'){ await loadEscrows(); renderArbitrator(); }
+function setRole(r){
+  role=r;
+  document.getElementById('role-client').className='nav-btn'+(r==='client'?' active':'');
+  document.getElementById('role-freelancer').className='nav-btn'+(r==='freelancer'?' active':'');
+  document.getElementById('list-title').textContent=r==='client'?'Your Escrows as Client':'Your Escrows as Freelancer';
+  renderEscrows();
 }
-function updateHint(){const a=parseFloat(document.getElementById('f-amount').value);const h=document.getElementById('form-hint');if(a>0){h.style.display='block';const fee=(a*0.01).toFixed(2);document.getElementById('fh-deposit').textContent=a.toFixed(2)+' USDC';document.getElementById('fh-recv').textContent=(a-parseFloat(fee)).toFixed(2)+' USDC';document.getElementById('fh-fee').textContent=fee+' USDC';}else{h.style.display='none';}}
-function closeModal(id){document.getElementById(id).style.display='none';activeId=null;}
-function showTx(hash){const el=document.getElementById('tx-bar');el.style.display='block';el.innerHTML='// tx confirmed on Arc → <a href="https://testnet.arcscan.app/tx/'+hash+'" target="_blank">'+hash.slice(0,24)+'...'+hash.slice(-8)+'</a>';}
+
+function switchTab(t){
+  ['list','create','arbitrator'].forEach(v=>{
+    document.getElementById('view-'+v).style.display=v===t?'block':'none';
+    const tab=document.getElementById('tab-'+v);
+    if(tab) tab.className='tab'+(v===t?' active':'');
+  });
+  if(t==='arbitrator') renderArbitrator();
+}
+
+function updateHint(){
+  const a=parseFloat(document.getElementById('f-amount').value);
+  const h=document.getElementById('form-hint');
+  if(a>0){
+    h.style.display='block';
+    const fee=(a*0.01).toFixed(2);
+    document.getElementById('fh-deposit').textContent=a.toFixed(2)+' USDC';
+    document.getElementById('fh-recv').textContent=(a-parseFloat(fee)).toFixed(2)+' USDC';
+    document.getElementById('fh-fee').textContent=fee+' USDC';
+  } else { h.style.display='none'; }
+}
+
+function closeModal(id){ document.getElementById(id).style.display='none'; activeId=null; }
+
+function showTx(hash){
+  const el=document.getElementById('tx-bar');
+  el.style.display='block';
+  el.innerHTML='// tx confirmed on Arc → <a href="https://testnet.arcscan.app/tx/'+hash+'" target="_blank">'+hash.slice(0,24)+'...'+hash.slice(-8)+'</a>';
+}
 
 async function connectWallet(){
-  if(!window.ethereum)return alert("Install MetaMask to continue");
+  if(!window.ethereum) return alert("Install MetaMask to continue");
   try{
     const provider=new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts",[]);
@@ -337,15 +349,15 @@ async function connectWallet(){
     usdc=new ethers.Contract(USDC_ADDR,USDC_ABI,signer);
     document.getElementById('wallet-area').innerHTML='<div class="wallet-chip">'+wallet.slice(0,6)+'...'+wallet.slice(-4)+'</div>';
     document.getElementById('tab-refresh').style.display='block';
-    if(wallet.toLowerCase()==='0x8ce69aef566ce2755672cc27739df4d43a0a6b3f'){
+    if(wallet.toLowerCase()===ARBITRATOR){
       document.getElementById('tab-arbitrator').style.display='block';
     }
     await loadEscrows();
-  }catch(e){alert(e.reason||e.message);}
+  }catch(e){ alert(e.reason||e.message); }
 }
 
 async function loadEscrows(){
-  if(!contract)return;
+  if(!contract) return;
   document.getElementById('empty-state').style.display='none';
   document.getElementById('escrow-list').innerHTML='<div class="loading">// fetching escrows from Arc...</div>';
   try{
@@ -354,127 +366,98 @@ async function loadEscrows(){
     for(let i=count;i>=1;i--){
       try{
         const e=await contract.getEscrow(i);
-        escrows.push({id:Number(e.id),client:e.client,freelancer:e.freelancer,amount:Number(ethers.formatUnits(e.amount,USDC_DECIMALS)),deadline:new Date(Number(e.deadline)*1000).toLocaleDateString(),autoReleaseTime:Number(e.autoReleaseTime),status:Number(e.status),description:e.description,deliveryLink:e.deliveryLink});
-      }catch(err){console.warn(err);}
+        escrows.push({
+          id:Number(e.id),
+          client:e.client,
+          freelancer:e.freelancer,
+          amount:Number(ethers.formatUnits(e.amount,USDC_DECIMALS)),
+          deadline:new Date(Number(e.deadline)*1000).toLocaleDateString(),
+          autoReleaseTime:Number(e.autoReleaseTime),
+          status:Number(e.status),
+          description:e.description,
+          deliveryLink:e.deliveryLink
+        });
+      }catch(err){ console.warn(err); }
     }
-    renderEscrows();updateStats();
-    // refresh arbitrator panel if open
-    if(document.getElementById('view-arbitrator').style.display==='block') renderArbitrator();
-  }catch(e){document.getElementById('escrow-list').innerHTML='<div class="empty"><div class="empty-title">Error loading</div><div class="empty-sub">'+e.message+'</div></div>';}
+    renderEscrows();
+    updateStats();
+  }catch(e){
+    document.getElementById('escrow-list').innerHTML='<div class="empty"><div class="empty-title">Error loading</div><div class="empty-sub">'+e.message+'</div></div>';
+  }
 }
 
 function updateStats(){
-  // Platform stats
+  // Platform stats in footer
   document.getElementById('s-total').textContent=escrows.length;
   document.getElementById('s-active').textContent=escrows.filter(e=>e.status===0||e.status===1).length;
   document.getElementById('s-completed').textContent=escrows.filter(e=>e.status===2).length;
   document.getElementById('s-disputed').textContent=escrows.filter(e=>e.status===3).length;
+  document.getElementById('platform-footer').style.display='flex';
+  // Personal stats
   if(wallet){
-    // Personal stats — big and bold
     const mine=escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase()||e.freelancer.toLowerCase()===wallet.toLowerCase());
     const vol=mine.reduce((a,e)=>a+e.amount,0);
     document.getElementById('p-total').textContent=mine.length;
     document.getElementById('p-active').textContent=mine.filter(e=>e.status===0||e.status===1).length;
     document.getElementById('p-completed').textContent=mine.filter(e=>e.status===2).length;
-    document.getElementById('p-earnings').textContent=vol.toFixed(2)+' USDC';
+    document.getElementById('p-volume').textContent=vol.toFixed(2)+' USDC';
     document.getElementById('personal-stats').style.display='block';
-    document.getElementById('platform-stats').style.display='flex';
   }
 }
 
 function renderEscrows(){
   const el=document.getElementById('escrow-list');
   let list=escrows;
-  if(wallet){list=role==='client'?escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase()):escrows.filter(e=>e.freelancer.toLowerCase()===wallet.toLowerCase());}
-  if(!list.length){el.innerHTML='';const em=document.getElementById('empty-state');em.style.display='block';em.innerHTML='<div class="empty-icon">◈</div><div class="empty-title">'+(wallet?'No escrows found':'Connect your wallet')+'</div><div class="empty-sub">'+(wallet?'Create your first escrow to get started':'Connect wallet to view your escrows')+'</div>';return;}
+  if(wallet){
+    list=role==='client'
+      ? escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase())
+      : escrows.filter(e=>e.freelancer.toLowerCase()===wallet.toLowerCase());
+  }
+  if(!list.length){
+    el.innerHTML='';
+    const em=document.getElementById('empty-state');
+    em.style.display='block';
+    em.innerHTML='<div class="empty-icon">◈</div><div class="empty-title">'+(wallet?'No escrows found':'Connect your wallet')+'</div><div class="empty-sub">'+(wallet?'Create your first escrow to get started':'Connect wallet to view your escrows')+'</div>';
+    return;
+  }
   document.getElementById('empty-state').style.display='none';
-  const isC=e=>wallet&&e.client.toLowerCase()===wallet.toLowerCase();
-  const isF=e=>wallet&&e.freelancer.toLowerCase()===wallet.toLowerCase();
   el.innerHTML=list.map(e=>{
+    const isC=wallet&&e.client.toLowerCase()===wallet.toLowerCase();
+    const isF=wallet&&e.freelancer.toLowerCase()===wallet.toLowerCase();
     const fee=(e.amount*0.01).toFixed(2);
     const recv=(e.amount-parseFloat(fee)).toFixed(2);
     const canAuto=e.status===1&&Date.now()/1000>=e.autoReleaseTime&&e.autoReleaseTime>0;
-    return '<div class="card"><div class="card-header"><div><div class="escrow-id">ESC-'+String(e.id).padStart(4,'0')+' · '+e.deadline+'</div><div class="escrow-desc">'+e.description+'</div></div><span class="badge '+BADGE[e.status]+'">'+STATUS[e.status]+'</span></div><div class="grid3"><div class="cell"><div class="cell-label">Amount</div><div class="cell-val">'+e.amount.toFixed(2)+' USDC</div></div><div class="cell"><div class="cell-label">Freelancer gets</div><div class="cell-val">'+recv+' USDC</div></div><div class="cell"><div class="cell-label">Deadline</div><div class="cell-val" style="font-size:11px;">'+e.deadline+'</div></div></div><div class="addr-row"><span>Client: '+e.client.slice(0,10)+'...'+e.client.slice(-6)+'</span><span>Freelancer: '+e.freelancer.slice(0,10)+'...'+e.freelancer.slice(-6)+'</span></div>'+(e.deliveryLink?'<div class="delivery-box"><div class="delivery-label">Delivery submitted</div><div class="delivery-link"><a href="'+e.deliveryLink+'" target="_blank">'+e.deliveryLink+'</a></div></div>':'')+'<div class="card-actions">'+(e.status===0&&isF(e)?'<button class="btn btn-green" onclick="openDelivery('+e.id+')">→ Submit Delivery</button>':'')+(e.status===1&&isC(e)?'<button class="btn btn-green" onclick="releasePayment('+e.id+')">✓ Release Payment</button>':'')+(canAuto?'<button class="btn btn-green" onclick="autoRelease('+e.id+')">⏱ Auto Release</button>':'')+(( e.status===0||e.status===1)&&(isC(e)||isF(e))?'<button class="btn btn-red" onclick="openDispute('+e.id+')">⚑ Raise Dispute</button>':'')+'</div></div>';
+    return `<div class="card">
+      <div class="card-header">
+        <div>
+          <div class="escrow-id">ESC-${String(e.id).padStart(4,'0')} · ${e.deadline}</div>
+          <div class="escrow-desc">${e.description}</div>
+        </div>
+        <span class="badge ${BADGE[e.status]}">${STATUS[e.status]}</span>
+      </div>
+      <div class="grid3">
+        <div class="cell"><div class="cell-label">Amount</div><div class="cell-val">${e.amount.toFixed(2)} USDC</div></div>
+        <div class="cell"><div class="cell-label">Freelancer gets</div><div class="cell-val">${recv} USDC</div></div>
+        <div class="cell"><div class="cell-label">Deadline</div><div class="cell-val" style="font-size:11px;">${e.deadline}</div></div>
+      </div>
+      <div class="addr-row">
+        <span>Client: ${e.client.slice(0,10)}...${e.client.slice(-6)}</span>
+        <span>Freelancer: ${e.freelancer.slice(0,10)}...${e.freelancer.slice(-6)}</span>
+      </div>
+      ${e.deliveryLink?`<div class="delivery-box"><div class="delivery-label">Delivery submitted</div><div class="delivery-link"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:''}
+      <div class="card-actions">
+        ${e.status===0&&isF?`<button class="btn btn-green" onclick="openDelivery(${e.id})">→ Submit Delivery</button>`:''}
+        ${e.status===1&&isC?`<button class="btn btn-green" onclick="releasePayment(${e.id})">✓ Release Payment</button>`:''}
+        ${canAuto?`<button class="btn btn-green" onclick="autoRelease(${e.id})">⏱ Auto Release</button>`:''}
+        ${(e.status===0||e.status===1)&&(isC||isF)?`<button class="btn btn-red" onclick="openDispute(${e.id})">⚑ Raise Dispute</button>`:''}
+      </div>
+    </div>`;
   }).join('');
-}
-
-async function createEscrow(){
-  if(!contract)return alert("Connect wallet first");
-  const desc=document.getElementById('f-desc').value.trim();
-  const fl=document.getElementById('f-freelancer').value.trim();
-  const amt=document.getElementById('f-amount').value.trim();
-  const days=document.getElementById('f-days').value.trim();
-  if(!desc||!fl||!amt||!days)return alert("All fields are required");
-  const btn=document.getElementById('btn-create');
-  btn.disabled=true;btn.textContent='// Approving USDC...';
-  try{
-    const amount=ethers.parseUnits(amt,USDC_DECIMALS);
-    const allowance=await usdc.allowance(wallet,CONTRACT);
-    if(allowance<amount){const tx=await usdc.approve(CONTRACT,amount);await tx.wait();}
-    btn.textContent='// Creating escrow on Arc...';
-    const tx=await contract.createEscrow(fl,amount,Number(days),desc);
-    showTx(tx.hash);await tx.wait();
-    document.getElementById('f-desc').value='';document.getElementById('f-freelancer').value='';document.getElementById('f-amount').value='';document.getElementById('f-days').value='';document.getElementById('form-hint').style.display='none';
-    switchTab('list');await loadEscrows();
-  }catch(e){alert(e.reason||e.message);}
-  btn.disabled=false;btn.textContent='→ Lock Funds & Create Escrow';
-}
-
-function openDelivery(id){activeId=id;document.getElementById('delivery-modal').style.display='flex';}
-function openDispute(id){activeId=id;document.getElementById('dispute-modal').style.display='flex';}
-
-async function submitDelivery(){
-  const link=document.getElementById('delivery-link-input').value.trim();
-  if(!link)return alert("Enter a delivery link");
-  if(!contract)return alert("Wallet not connected. Please reconnect your wallet.");
-  if(!activeId)return alert("No escrow selected.");
-  const id=activeId;
-  closeModal('delivery-modal');
-  try{
-    const tx=await contract.submitDelivery(id,link);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-  }catch(e){alert(e.reason||e.message);}
-}
-
-async function releasePayment(id){
-  if(!contract)return alert("Wallet not connected. Please reconnect your wallet.");
-  try{
-    const tx=await contract.releasePayment(id);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-  }catch(e){alert(e.reason||e.message);}
-}
-
-async function autoRelease(id){
-  try{const tx=await contract.autoRelease(id);showTx(tx.hash);await tx.wait();await loadEscrows();}catch(e){alert(e.reason||e.message);}
-}
-
-async function raiseDispute(){
-  if(!contract)return alert("Wallet not connected. Please reconnect your wallet.");
-  if(!activeId)return alert("No escrow selected.");
-  const id=activeId;
-  closeModal('dispute-modal');
-  try{
-    const tx=await contract.raiseDispute(id);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-  }catch(e){alert(e.reason||e.message);}
-}
-
-function debugArbitrator(){
-  const el=document.getElementById('arb-debug');
-  el.innerHTML='Total escrows loaded: '+escrows.length+'<br>'+escrows.map(e=>'ESC-'+e.id+' status='+e.status+(e.status===3?' ← DISPUTED':'')).join('<br>');
 }
 
 function renderArbitrator(){
   const el=document.getElementById('arbitrator-list');
-  // Show ALL disputed escrows regardless of role filter
   const disputed=escrows.filter(e=>e.status===3);
-  console.log("All escrows:", escrows.length, "Disputed:", disputed.length);
   if(!disputed.length){
     el.innerHTML='<div class="empty"><div class="empty-icon">⚖</div><div class="empty-title">No disputes</div><div class="empty-sub">All clear — no active disputes</div></div>';
     return;
@@ -495,35 +478,93 @@ function renderArbitrator(){
       </div>
       ${e.deliveryLink?`<div class="delivery-box"><div class="delivery-label">Freelancer delivery</div><div class="delivery-link"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:'<div style="font-size:12px;color:var(--text4);margin-bottom:12px;">No delivery submitted</div>'}
       <div class="card-actions">
-        <button class="btn btn-green" onclick="resolveDispute(${e.id}, true)">✓ Favor Freelancer — Pay them</button>
-        <button class="btn btn-red" onclick="resolveDispute(${e.id}, false)">✗ Favor Client — Refund them</button>
+        <button class="btn btn-green" onclick="resolveDispute(${e.id},true)">✓ Favor Freelancer</button>
+        <button class="btn btn-red" onclick="resolveDispute(${e.id},false)">✗ Favor Client — Refund</button>
       </div>
     </div>
   `).join('');
 }
 
-async function resolveDispute(id, favorFreelancer){
-  if(!contract)return alert("Wallet not connected");
-  const side = favorFreelancer ? "freelancer" : "client";
-  if(!confirm("Are you sure? This will resolve in favor of the "+side+". This cannot be undone."))return;
+async function createEscrow(){
+  if(!contract) return alert("Connect wallet first");
+  const desc=document.getElementById('f-desc').value.trim();
+  const fl=document.getElementById('f-freelancer').value.trim();
+  const amt=document.getElementById('f-amount').value.trim();
+  const days=document.getElementById('f-days').value.trim();
+  if(!desc||!fl||!amt||!days) return alert("All fields are required");
+  const btn=document.getElementById('btn-create');
+  btn.disabled=true; btn.textContent='// Approving USDC...';
   try{
-    const tx=await contract.resolveDispute(id, favorFreelancer);
-    showTx(tx.hash);
-    await tx.wait();
+    const amount=ethers.parseUnits(amt,USDC_DECIMALS);
+    const allowance=await usdc.allowance(wallet,CONTRACT);
+    if(allowance<amount){ const tx=await usdc.approve(CONTRACT,amount); await tx.wait(); }
+    btn.textContent='// Creating escrow on Arc...';
+    const tx=await contract.createEscrow(fl,amount,Number(days),desc);
+    showTx(tx.hash); await tx.wait();
+    document.getElementById('f-desc').value='';
+    document.getElementById('f-freelancer').value='';
+    document.getElementById('f-amount').value='';
+    document.getElementById('f-days').value='';
+    document.getElementById('form-hint').style.display='none';
+    switchTab('list');
+    await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
+  btn.disabled=false; btn.textContent='→ Lock Funds & Create Escrow';
+}
+
+function openDelivery(id){ activeId=id; document.getElementById('delivery-modal').style.display='flex'; }
+function openDispute(id){ activeId=id; document.getElementById('dispute-modal').style.display='flex'; }
+
+async function submitDelivery(){
+  const link=document.getElementById('delivery-link-input').value.trim();
+  if(!link) return alert("Enter a delivery link");
+  if(!contract) return alert("Wallet not connected. Please reconnect.");
+  const id=activeId;
+  closeModal('delivery-modal');
+  try{
+    const tx=await contract.submitDelivery(id,link);
+    showTx(tx.hash); await tx.wait(); await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
+}
+
+async function releasePayment(id){
+  if(!contract) return alert("Wallet not connected. Please reconnect.");
+  try{
+    const tx=await contract.releasePayment(id);
+    showTx(tx.hash); await tx.wait(); await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
+}
+
+async function autoRelease(id){
+  if(!contract) return alert("Wallet not connected. Please reconnect.");
+  try{
+    const tx=await contract.autoRelease(id);
+    showTx(tx.hash); await tx.wait(); await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
+}
+
+async function raiseDispute(){
+  if(!contract) return alert("Wallet not connected. Please reconnect.");
+  const id=activeId;
+  closeModal('dispute-modal');
+  try{
+    const tx=await contract.raiseDispute(id);
+    showTx(tx.hash); await tx.wait(); await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
+}
+
+async function resolveDispute(id,favorFreelancer){
+  if(!contract) return alert("Wallet not connected");
+  const side=favorFreelancer?"freelancer":"client";
+  if(!confirm("Resolve in favor of the "+side+"? This cannot be undone.")) return;
+  try{
+    const tx=await contract.resolveDispute(id,favorFreelancer);
+    showTx(tx.hash); await tx.wait();
     await loadEscrows();
     renderArbitrator();
-    alert("Dispute resolved successfully!");
-  }catch(e){alert(e.reason||e.message);}
+    alert("Dispute resolved!");
+  }catch(e){ alert(e.reason||e.message); }
 }
 </script>
-  <!-- Platform footer -->
-  <div id="platform-stats" style="display:none;background:#050f05;border-top:1px solid #0d2d0d;padding:14px 32px;flex-direction:row;align-items:center;gap:24px;flex-wrap:wrap;margin-top:auto;">
-    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#2a5c2a;letter-spacing:1px;text-transform:uppercase;">◈ Clario Network</span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;">Total escrows: <span id="s-total" style="color:#22c55e;">—</span></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;">Active: <span id="s-active" style="color:#22c55e;">—</span></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;">Completed: <span id="s-completed" style="color:#22c55e;">—</span></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;">Disputed: <span id="s-disputed" style="color:#22c55e;">—</span></span>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#2a5c2a;margin-left:auto;">Built on Arc · Powered by Circle USDC</span>
-  </div>
 </body>
 </html>
