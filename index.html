@@ -186,12 +186,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat"><div class="stat-num" id="s-total">—</div><div class="stat-label">Total Escrows</div></div>
-    <div class="stat"><div class="stat-num" id="s-active">—</div><div class="stat-label">Active</div></div>
-    <div class="stat"><div class="stat-num" id="s-completed">—</div><div class="stat-label">Completed</div></div>
-    <div class="stat"><div class="stat-num" id="s-disputed">—</div><div class="stat-label">Disputed</div></div>
+  <!-- Personal stats — big and bold, only shows when wallet connected -->
+  <div id="personal-stats" style="display:none;background:#000;border-bottom:1px solid #0d2d0d;">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+      <div style="padding:24px 32px;border-right:1px solid #0d2d0d;">
+        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#22c55e;line-height:1;" id="p-total">0</div>
+        <div style="font-size:11px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;">Your Escrows</div>
+      </div>
+      <div style="padding:24px 32px;border-right:1px solid #0d2d0d;">
+        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#22c55e;line-height:1;" id="p-active">0</div>
+        <div style="font-size:11px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;">Active</div>
+      </div>
+      <div style="padding:24px 32px;border-right:1px solid #0d2d0d;">
+        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#22c55e;line-height:1;" id="p-completed">0</div>
+        <div style="font-size:11px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;">Completed</div>
+      </div>
+      <div style="padding:24px 32px;">
+        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:#22c55e;line-height:1;" id="p-earnings">0</div>
+        <div style="font-size:11px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;">USDC Volume</div>
+      </div>
+    </div>
   </div>
+
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('list')" id="tab-list">All Escrows</button>
@@ -297,7 +313,7 @@ const BADGE=['badge-active','badge-delivered','badge-completed','badge-disputed'
 let wallet=null,contract=null,usdc=null,role='client',escrows=[],activeId=null;
 
 function setRole(r){role=r;document.getElementById('role-client').className='nav-btn'+(r==='client'?' active':'');document.getElementById('role-freelancer').className='nav-btn'+(r==='freelancer'?' active':'');document.getElementById('list-title').textContent=r==='client'?'Your Escrows as Client':'Your Escrows as Freelancer';renderEscrows();}
-async function switchTab(t){
+async async function switchTab(t){
   document.getElementById('view-list').style.display=t==='list'?'block':'none';
   document.getElementById('view-create').style.display=t==='create'?'block':'none';
   document.getElementById('view-arbitrator').style.display=t==='arbitrator'?'block':'none';
@@ -348,10 +364,22 @@ async function loadEscrows(){
 }
 
 function updateStats(){
+  // Platform stats
   document.getElementById('s-total').textContent=escrows.length;
   document.getElementById('s-active').textContent=escrows.filter(e=>e.status===0||e.status===1).length;
   document.getElementById('s-completed').textContent=escrows.filter(e=>e.status===2).length;
   document.getElementById('s-disputed').textContent=escrows.filter(e=>e.status===3).length;
+  if(wallet){
+    // Personal stats — big and bold
+    const mine=escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase()||e.freelancer.toLowerCase()===wallet.toLowerCase());
+    const vol=mine.reduce((a,e)=>a+e.amount,0);
+    document.getElementById('p-total').textContent=mine.length;
+    document.getElementById('p-active').textContent=mine.filter(e=>e.status===0||e.status===1).length;
+    document.getElementById('p-completed').textContent=mine.filter(e=>e.status===2).length;
+    document.getElementById('p-earnings').textContent=vol.toFixed(2)+' USDC';
+    document.getElementById('personal-stats').style.display='block';
+    document.getElementById('platform-stats').style.display='flex';
+  }
 }
 
 function renderEscrows(){
@@ -488,5 +516,14 @@ async function resolveDispute(id, favorFreelancer){
   }catch(e){alert(e.reason||e.message);}
 }
 </script>
+  <!-- Platform footer -->
+  <div id="platform-stats" style="display:none;background:#050f05;border-top:1px solid #0d2d0d;padding:14px 32px;flex-direction:row;align-items:center;gap:24px;flex-wrap:wrap;margin-top:auto;">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#2a5c2a;letter-spacing:1px;text-transform:uppercase;">◈ Clario Network</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;">Total escrows: <span id="s-total" style="color:#22c55e;">—</span></span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;">Active: <span id="s-active" style="color:#22c55e;">—</span></span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;">Completed: <span id="s-completed" style="color:#22c55e;">—</span></span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;">Disputed: <span id="s-disputed" style="color:#22c55e;">—</span></span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#2a5c2a;margin-left:auto;">Built on Arc · Powered by Circle USDC</span>
+  </div>
 </body>
 </html>
