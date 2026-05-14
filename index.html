@@ -68,8 +68,9 @@ body{
 .sidebar.collapsed .sidebar-wallet,
 .sidebar.collapsed .nav-badge,
 .sidebar.collapsed .nav-item>span:not(.nav-icon){display:none;}
-.sidebar.collapsed .sidebar-logo{justify-content:center;padding:22px 0;}
+.sidebar.collapsed .sidebar-logo{justify-content:center;padding:14px 0;}
 .sidebar.collapsed .nav-item{justify-content:center;padding:12px 0;}
+.sidebar.collapsed #sidebar-toggle{margin-left:0;}
 
 .sidebar-logo{
   padding:22px 20px;
@@ -710,8 +711,8 @@ body{
       </div>
       <div style="font-family:var(--font-mono);font-size:9px;color:var(--white4);margin-top:1px;">ARC TESTNET</div>
     </div>
-    <button onclick="toggleSidebar()" id="sidebar-toggle" style="margin-left:auto;background:none;border:none;color:var(--white4);cursor:pointer;font-size:16px;padding:4px;transition:all 0.2s;border-radius:4px;" title="Toggle sidebar">☰</button>
   </div>
+  <button onclick="toggleSidebar()" id="sidebar-toggle" style="position:absolute;top:16px;right:12px;background:none;border:1px solid #222;color:var(--white4);cursor:pointer;font-size:13px;padding:5px 8px;transition:all 0.2s;border-radius:5px;z-index:200;" title="Toggle sidebar">☰</button>
 
   <nav class="sidebar-nav">
     <div class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
