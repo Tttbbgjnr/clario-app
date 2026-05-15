@@ -1,1413 +1,810 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Clario V1.2 — Trustless Freelance Escrow</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-/* ── RESET & ROOT ─────────────────────────────────────────── */
-*{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --bg:#000;
-  --bg2:#080808;
-  --bg3:#0f0f0f;
-  --bg4:#141414;
-  --green:#22c55e;
-  --green2:#16a34a;
-  --green3:#166534;
-  --green4:#0d3d1a;
-  --green5:#061a06;
-  --border:#111;
-  --border2:#1a2a1a;
-  --white:#ffffff;
-  --white2:#e8e8e8;
-  --white3:#a0a0a0;
-  --white4:#555;
-  --amber:#f59e0b;
-  --red:#f87171;
-  --blue:#60a5fa;
-  --font-main:'DM Sans',sans-serif;
-  --font-display:'Syne',sans-serif;
-  --font-mono:'JetBrains Mono',monospace;
-  --radius:10px;
-  --radius-sm:6px;
-  --radius-lg:14px;
-  --shadow:0 4px 24px rgba(0,0,0,0.6);
-  --shadow-green:0 0 24px rgba(34,197,94,0.12);
-  --transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
-}
-
-body{
-  font-family:var(--font-main);
-  background:var(--bg);
-  color:var(--white2);
-  min-height:100vh;
-  display:flex;
-  overflow:hidden;
-}
-
-/* ── SIDEBAR ─────────────────────────────────────────────── */
-.sidebar{
-  width:240px;
-  min-height:100vh;
-  background:#111;
-  border-right:2px solid #222;
-  display:flex;
-  flex-direction:column;
-  position:fixed;
-  top:0;left:0;bottom:0;
-  z-index:100;
-  transition:width 0.25s cubic-bezier(0.4,0,0.2,1);
-  overflow:hidden;
-}
-.sidebar.collapsed{width:62px;}
-.sidebar.collapsed .logo-text,
-.sidebar.collapsed .logo-version,
-.sidebar.collapsed .sidebar-wallet,
-.sidebar.collapsed .nav-badge,
-.sidebar.collapsed .nav-item>span:not(.nav-icon){display:none;}
-.sidebar.collapsed .sidebar-logo{justify-content:center;padding:14px 0;}
-.sidebar.collapsed .nav-item{justify-content:center;padding:12px 0;}
-.sidebar.collapsed #sidebar-toggle{margin-left:0;}
-
-.sidebar-logo{
-  padding:22px 20px;
-  border-bottom:1px solid #222;
-  display:flex;align-items:center;gap:12px;
-}
-
-.logo-mark{
-  width:34px;height:34px;
-  background:linear-gradient(135deg,var(--green3),var(--green2));
-  border-radius:9px;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-display);
-  font-size:16px;font-weight:800;color:#fff;
-  flex-shrink:0;
-  box-shadow:var(--shadow-green);
-}
-
-.logo-text{
-  font-family:var(--font-display);
-  font-size:18px;font-weight:800;
-  color:var(--white);letter-spacing:-0.5px;
-}
-
-.logo-version{
-  font-family:var(--font-mono);
-  font-size:9px;color:var(--green);
-  background:var(--green5);
-  border:1px solid var(--green4);
-  padding:1px 6px;border-radius:20px;
-  margin-left:2px;
-}
-
-.sidebar-nav{
-  flex:1;padding:16px 12px;
-  display:flex;flex-direction:column;gap:2px;
-}
-
-.nav-item{
-  display:flex;align-items:center;gap:12px;
-  padding:10px 14px;border-radius:var(--radius-sm);
-  cursor:pointer;transition:var(--transition);
-  color:var(--white4);font-size:13px;font-weight:600;
-  border:1px solid transparent;
-  position:relative;
-}
-
-.nav-item:hover{
-  background:var(--bg3);color:var(--white3);
-}
-
-.nav-item.active{
-  background:var(--green5);
-  color:var(--green);
-  border-color:var(--green4);
-}
-
-.nav-item.active .nav-icon{color:var(--green);}
-
-.nav-icon{
-  font-size:16px;width:20px;text-align:center;
-  transition:var(--transition);
-}
-
-.nav-badge{
-  margin-left:auto;
-  font-family:var(--font-mono);
-  font-size:9px;font-weight:600;
-  background:var(--green4);color:var(--green);
-  padding:2px 7px;border-radius:20px;
-}
-
-.sidebar-wallet{
-  padding:16px 12px;
-  border-top:1px solid #222;
-}
-
-.wallet-card{
-  background:var(--bg3);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:12px 14px;
-}
-
-.wallet-label{
-  font-size:9px;font-weight:700;
-  color:var(--white4);text-transform:uppercase;
-  letter-spacing:0.8px;margin-bottom:6px;
-}
-
-.wallet-addr{
-  font-family:var(--font-mono);
-  font-size:11px;color:var(--green);
-  margin-bottom:8px;
-}
-
-.wallet-network{
-  display:flex;align-items:center;gap:6px;
-  font-size:10px;color:var(--white4);
-}
-
-.network-dot{
-  width:6px;height:6px;
-  border-radius:50%;background:var(--green);
-  box-shadow:0 0 6px var(--green);
-  animation:pulse 2s infinite;
-}
-
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
-
-.connect-sidebar-btn{
-  width:100%;padding:10px;
-  background:var(--green4);color:var(--green);
-  border:1px solid var(--green3);
-  border-radius:var(--radius-sm);
-  font-size:12px;font-weight:700;
-  cursor:pointer;transition:var(--transition);
-  font-family:var(--font-main);
-}
-.connect-sidebar-btn:hover{background:var(--green3);transform:translateY(-1px);}
-
-/* ── MAIN CONTENT ────────────────────────────────────────── */
-.main{
-  margin-left:240px;
-  flex:1;
-  min-height:100vh;
-  display:flex;flex-direction:column;
-  overflow-y:auto;
-  max-height:100vh;
-  transition:margin-left 0.25s cubic-bezier(0.4,0,0.2,1);
-}
-.main.expanded{margin-left:62px;}
-
-.topbar{
-  height:60px;
-  background:var(--bg2);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;
-  padding:0 32px;gap:16px;
-  position:sticky;top:0;z-index:50;
-}
-
-.topbar-title{
-  font-family:var(--font-display);
-  font-size:16px;font-weight:700;
-  color:var(--white);
-}
-
-.topbar-right{
-  margin-left:auto;
-  display:flex;align-items:center;gap:12px;
-}
-
-.role-toggle{
-  display:flex;
-  background:var(--bg3);
-  border:1px solid var(--border);
-  border-radius:var(--radius-sm);
-  overflow:hidden;
-}
-
-.role-btn{
-  padding:6px 16px;font-size:12px;font-weight:700;
-  background:transparent;color:var(--white4);
-  border:none;cursor:pointer;transition:var(--transition);
-  font-family:var(--font-main);
-}
-.role-btn.active{background:var(--green4);color:var(--green);}
-
-.topbar-chip{
-  font-family:var(--font-mono);
-  font-size:10px;color:var(--green);
-  background:var(--green5);border:1px solid var(--green4);
-  padding:5px 12px;border-radius:var(--radius-sm);
-}
-
-.page-content{padding:32px;}
-
-/* ── DASHBOARD PAGE ──────────────────────────────────────── */
-.dashboard-hero{
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:36px 40px;
-  margin-bottom:24px;
-  position:relative;overflow:hidden;
-}
-
-.dashboard-hero::before{
-  content:'';position:absolute;
-  top:-100px;right:-100px;
-  width:400px;height:400px;
-  background:radial-gradient(circle,rgba(34,197,94,0.06) 0%,transparent 70%);
-  pointer-events:none;
-}
-
-.hero-tag{
-  font-family:var(--font-mono);
-  font-size:10px;color:var(--green);
-  letter-spacing:2px;text-transform:uppercase;
-  margin-bottom:14px;
-  display:flex;align-items:center;gap:8px;
-}
-.hero-tag::before{content:'';width:20px;height:1px;background:var(--green);}
-
-.hero-title{
-  font-family:var(--font-display);
-  font-size:36px;font-weight:800;
-  color:var(--white);line-height:1.15;
-  letter-spacing:-0.5px;margin-bottom:10px;
-}
-.hero-title span{color:var(--green);}
-
-.hero-sub{
-  font-size:14px;color:var(--white3);
-  line-height:1.7;max-width:500px;
-  margin-bottom:20px;
-}
-
-.hero-pills{display:flex;gap:8px;flex-wrap:wrap;}
-.pill{
-  font-size:11px;font-weight:600;
-  padding:5px 14px;border-radius:20px;
-  background:var(--bg3);color:var(--white3);
-  border:1px solid var(--border2);
-  transition:var(--transition);
-}
-.pill.green{background:var(--green5);color:var(--green);border-color:var(--green4);}
-
-/* STATS GRID */
-.stats-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:12px;margin-bottom:24px;
-}
-
-.stat-card{
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:20px 22px;
-  transition:var(--transition);
-  cursor:default;
-}
-.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);}
-
-.stat-num{
-  font-family:var(--font-display);
-  font-size:32px;font-weight:800;
-  color:var(--white);line-height:1;
-  margin-bottom:6px;
-}
-.stat-num.green{color:var(--green);}
-.stat-num.white{color:var(--white);}
-
-.stat-label{
-  font-size:11px;font-weight:700;
-  color:var(--white4);
-  text-transform:uppercase;letter-spacing:0.8px;
-}
-
-.stat-change{
-  font-size:10px;color:var(--green);
-  margin-top:4px;font-weight:600;
-}
-
-/* SECTION HEADER */
-.section-header{
-  display:flex;align-items:center;
-  justify-content:space-between;
-  margin-bottom:16px;
-}
-.section-title{
-  font-family:var(--font-mono);
-  font-size:10px;color:var(--white4);
-  text-transform:uppercase;letter-spacing:1.5px;
-}
-.section-action{
-  font-size:12px;font-weight:600;
-  color:var(--green);cursor:pointer;
-  background:none;border:none;
-  font-family:var(--font-main);
-  transition:var(--transition);
-}
-.section-action:hover{color:var(--green2);}
-
-/* ── ESCROW CARDS ────────────────────────────────────────── */
-.escrow-card{
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:22px 24px;
-  margin-bottom:12px;
-  transition:var(--transition);
-  position:relative;overflow:hidden;
-}
-.escrow-card:hover{
-  border-color:var(--border2);
-  transform:translateY(-2px);
-  box-shadow:var(--shadow);
-}
-.escrow-card::before{
-  content:'';
-  position:absolute;left:0;top:0;bottom:0;
-  width:3px;border-radius:var(--radius-lg) 0 0 var(--radius-lg);
-  transition:var(--transition);
-}
-.escrow-card.status-active::before{background:var(--green);}
-.escrow-card.status-delivered::before{background:var(--amber);}
-.escrow-card.status-completed::before{background:#4ade80;}
-.escrow-card.status-disputed::before{background:var(--red);}
-.escrow-card.status-refunded::before{background:var(--blue);}
-
-.card-header{
-  display:flex;justify-content:space-between;
-  align-items:flex-start;margin-bottom:16px;
-}
-
-.card-meta{font-size:10px;font-weight:600;color:var(--white4);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:0.8px;}
-.card-title{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--white);line-height:1.2;}
-
-.badge{
-  font-family:var(--font-mono);font-size:9px;font-weight:600;
-  padding:4px 10px;border-radius:20px;letter-spacing:0.5px;
-  white-space:nowrap;
-}
-.badge-active{background:#0a1a00;color:var(--green);border:1px solid var(--green4);}
-.badge-delivered{background:#1a1000;color:var(--amber);border:1px solid #3d2800;}
-.badge-completed{background:#001a0a;color:#4ade80;border:1px solid #0d4a1a;}
-.badge-disputed{background:#1a0000;color:var(--red);border:1px solid #3d0000;}
-.badge-refunded{background:#0a0a1a;color:var(--blue);border:1px solid #0a1a3d;}
-
-.card-grid{
-  display:grid;grid-template-columns:repeat(4,1fr);
-  gap:8px;margin-bottom:14px;
-}
-.card-cell{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:10px 12px;
-}
-.cell-label{font-size:9px;font-weight:700;color:var(--white4);text-transform:uppercase;letter-spacing:0.6px;}
-.cell-val{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--white2);margin-top:3px;}
-.cell-val.green{color:var(--green);}
-.cell-val.white{color:var(--white);}
-
-.card-addresses{
-  font-family:var(--font-mono);font-size:9px;color:var(--white4);
-  margin-bottom:14px;padding:8px 12px;
-  background:var(--bg3);border-radius:var(--radius-sm);border:1px solid var(--border);
-  display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;
-}
-
-.delivery-link-box{
-  background:var(--green5);border:1px solid var(--green4);
-  border-radius:var(--radius-sm);padding:10px 12px;
-  margin-bottom:14px;
-}
-.delivery-link-label{font-size:9px;font-weight:700;color:var(--white4);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;}
-.delivery-link-url{font-family:var(--font-mono);font-size:10px;color:var(--green);}
-.delivery-link-url a{color:var(--green);text-decoration:underline;}
-
-/* MILESTONE BAR */
-.milestone-bar{
-  margin-bottom:14px;
-}
-.milestone-label{font-size:10px;font-weight:700;color:var(--white4);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;}
-.milestones{display:flex;gap:8px;}
-.milestone{
-  flex:1;background:var(--bg3);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:8px 12px;
-  position:relative;
-}
-.milestone.done{border-color:var(--green4);background:var(--green5);}
-.milestone.pending{border-color:#3d2800;background:#1a1000;}
-.milestone-num{font-family:var(--font-mono);font-size:9px;color:var(--white4);margin-bottom:3px;}
-.milestone-amount{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--white2);}
-.milestone.done .milestone-amount{color:var(--green);}
-.milestone.pending .milestone-amount{color:var(--amber);}
-.milestone-status{font-size:9px;font-weight:700;margin-top:3px;}
-.milestone.done .milestone-status{color:var(--green);}
-.milestone.pending .milestone-status{color:var(--amber);}
-
-.card-actions{display:flex;gap:8px;flex-wrap:wrap;}
-
-/* ── BUTTONS ─────────────────────────────────────────────── */
-.btn{
-  font-family:var(--font-main);font-size:12px;font-weight:700;
-  padding:9px 18px;border-radius:var(--radius-sm);
-  cursor:pointer;transition:var(--transition);border:none;
-  letter-spacing:0.2px;display:inline-flex;align-items:center;gap:6px;
-  position:relative;overflow:hidden;
-}
-.btn::after{
-  content:'';position:absolute;inset:0;
-  background:rgba(255,255,255,0);
-  transition:background 0.15s;
-}
-.btn:hover::after{background:rgba(255,255,255,0.05);}
-.btn:active{transform:scale(0.97);}
-
-.btn-primary{background:var(--green3);color:var(--green);border:1px solid var(--green2);}
-.btn-primary:hover{background:var(--green2);box-shadow:var(--shadow-green);}
-.btn-white{background:var(--white);color:#000;border:1px solid var(--white2);}
-.btn-white:hover{background:var(--white2);}
-.btn-ghost{background:var(--bg3);color:var(--white3);border:1px solid var(--border);}
-.btn-ghost:hover{color:var(--white);border-color:var(--border2);}
-.btn-danger{background:#1a0000;color:var(--red);border:1px solid #3d0000;}
-.btn-danger:hover{background:#2a0000;}
-.btn-full{width:100%;justify-content:center;}
-.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
-
-/* ── CREATE FORM ─────────────────────────────────────────── */
-.form-container{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:32px;
-  max-width:680px;
-}
-
-.form-title{
-  font-family:var(--font-display);font-size:22px;font-weight:800;
-  color:var(--white);margin-bottom:6px;
-}
-.form-subtitle{font-size:13px;color:var(--white4);margin-bottom:28px;line-height:1.6;}
-
-.form-section{margin-bottom:24px;}
-.form-section-title{
-  font-size:11px;font-weight:700;color:var(--white3);
-  text-transform:uppercase;letter-spacing:0.8px;
-  margin-bottom:14px;padding-bottom:8px;
-  border-bottom:1px solid var(--border);
-}
-
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.form-group{margin-bottom:14px;}
-.form-group.full{grid-column:1/-1;}
-
-.flabel{
-  font-size:11px;font-weight:700;color:var(--white3);
-  text-transform:uppercase;letter-spacing:0.6px;
-  display:block;margin-bottom:6px;
-}
-.flabel span{color:var(--white4);font-weight:500;text-transform:none;letter-spacing:0;}
-
-.finput{
-  width:100%;font-size:14px;font-family:var(--font-main);
-  padding:11px 14px;border:1px solid var(--border);
-  border-radius:var(--radius-sm);background:var(--bg3);
-  color:var(--white);outline:none;transition:var(--transition);
-}
-.finput:focus{border-color:var(--green3);box-shadow:0 0 0 3px rgba(34,197,94,0.08);}
-.finput::placeholder{color:var(--white4);}
-.finput:hover{border-color:var(--border2);}
-
-/* MILESTONE INPUTS */
-.milestone-inputs{
-  display:grid;grid-template-columns:1fr 1fr;gap:12px;
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:var(--radius);padding:16px;margin-top:4px;
-}
-.milestone-input-card{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:12px;
-}
-.milestone-input-title{
-  font-family:var(--font-mono);font-size:10px;color:var(--white4);
-  margin-bottom:8px;letter-spacing:0.5px;
-}
-
-/* BREAKDOWN */
-.breakdown{
-  background:var(--bg3);border:1px solid var(--green4);
-  border-radius:var(--radius);padding:16px;margin:16px 0;
-}
-.breakdown-title{
-  font-size:10px;font-weight:700;color:var(--white4);
-  text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;
-}
-.breakdown-row{
-  display:flex;justify-content:space-between;
-  align-items:center;padding:6px 0;
-  border-bottom:1px solid var(--border);
-}
-.breakdown-row:last-child{border-bottom:none;padding-top:10px;margin-top:4px;}
-.breakdown-key{font-size:12px;font-weight:600;color:var(--white4);}
-.breakdown-val{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--green);}
-.breakdown-val.white{color:var(--white);}
-
-.notice{
-  background:#1a1000;border:1px solid #3d2800;
-  border-radius:var(--radius-sm);padding:10px 14px;
-  font-size:11px;color:var(--amber);font-weight:600;
-  margin-bottom:16px;display:flex;align-items:center;gap:8px;
-}
-
-/* ── MODALS ──────────────────────────────────────────────── */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.88);
-  display:flex;align-items:center;justify-content:center;
-  z-index:1000;padding:20px;
-  animation:fadeIn 0.2s ease;
-}
-@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-
-.modal{
-  background:var(--bg2);border:1px solid var(--border2);
-  border-radius:var(--radius-lg);padding:28px;
-  width:100%;max-width:460px;
-  animation:slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
-}
-@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
-
-.modal-title{
-  font-family:var(--font-display);font-size:18px;font-weight:800;
-  color:var(--white);margin-bottom:6px;
-}
-.modal-sub{font-size:13px;color:var(--white4);margin-bottom:20px;line-height:1.6;}
-.modal-actions{display:flex;gap:10px;margin-top:20px;}
-
-/* ── TX BAR ──────────────────────────────────────────────── */
-.tx-bar{
-  background:var(--green5);border:1px solid var(--green4);
-  border-radius:var(--radius);padding:12px 16px;
-  font-family:var(--font-mono);font-size:11px;color:var(--green);
-  word-break:break-all;margin-top:16px;
-  display:flex;align-items:center;gap:8px;
-  animation:slideUp 0.3s ease;
-}
-.tx-bar a{color:#4dbb6e;text-decoration:none;}
-.tx-bar a:hover{text-decoration:underline;}
-
-/* ── EMPTY STATE ─────────────────────────────────────────── */
-.empty{
-  text-align:center;padding:80px 20px;
-  display:flex;flex-direction:column;align-items:center;gap:12px;
-}
-.empty-icon{font-size:40px;opacity:0.3;}
-.empty-title{
-  font-family:var(--font-display);font-size:20px;font-weight:800;
-  color:var(--white4);
-}
-.empty-sub{font-size:13px;color:var(--white4);max-width:320px;line-height:1.6;}
-
-/* ── LOADING ─────────────────────────────────────────────── */
-.loading{
-  text-align:center;padding:60px;
-  font-family:var(--font-mono);font-size:12px;color:var(--white4);
-  display:flex;flex-direction:column;align-items:center;gap:12px;
-}
-.spinner{
-  width:24px;height:24px;border:2px solid var(--border);
-  border-top-color:var(--green);border-radius:50%;
-  animation:spin 0.8s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── SETTINGS PAGE ───────────────────────────────────────── */
-.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.settings-card{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:24px;
-}
-.settings-card-title{
-  font-family:var(--font-display);font-size:15px;font-weight:700;
-  color:var(--white);margin-bottom:16px;
-  display:flex;align-items:center;gap:8px;
-}
-.settings-row{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:10px 0;border-bottom:1px solid var(--border);
-}
-.settings-row:last-child{border-bottom:none;}
-.settings-key{font-size:12px;font-weight:600;color:var(--white4);}
-.settings-val{font-family:var(--font-mono);font-size:11px;color:var(--white2);}
-.settings-val.green{color:var(--green);}
-.settings-val.copy{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;}
-
-.about-card{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:28px;
-  margin-bottom:16px;
-}
-.about-logo-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
-.about-mark{
-  width:44px;height:44px;
-  background:linear-gradient(135deg,var(--green3),var(--green2));
-  border-radius:11px;display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-display);font-size:20px;font-weight:800;color:#fff;
-}
-.about-name{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--white);}
-.about-version{
-  font-family:var(--font-mono);font-size:10px;color:var(--green);
-  background:var(--green5);border:1px solid var(--green4);
-  padding:2px 8px;border-radius:20px;
-}
-.about-desc{font-size:13px;color:var(--white3);line-height:1.7;margin-bottom:16px;}
-.about-tags{display:flex;gap:8px;flex-wrap:wrap;}
-.about-tag{font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--bg3);color:var(--white4);border:1px solid var(--border);}
-
-/* ── ARBITRATOR PAGE ─────────────────────────────────────── */
-.arb-header{
-  background:#0f0000;border:1px solid #3d0000;
-  border-radius:var(--radius);padding:14px 18px;
-  margin-bottom:20px;font-size:12px;color:var(--red);font-weight:600;
-  display:flex;align-items:center;gap:8px;
-}
-
-/* ── FOOTER ──────────────────────────────────────────────── */
-.platform-footer{
-  border-top:1px solid var(--border);
-  padding:12px 32px;
-  display:flex;align-items:center;gap:20px;
-  flex-wrap:wrap;background:var(--bg2);
-  margin-top:auto;
-}
-.footer-item{
-  font-family:var(--font-mono);font-size:10px;color:var(--white4);
-}
-.footer-item span{color:var(--white2);}
-.footer-brand{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--white4);}
-
-/* ── SCROLLBAR ───────────────────────────────────────────── */
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:var(--green4);}
-</style>
-</head>
-<body>
-
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-mark">C</div>
-    <div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span class="logo-text">Clario</span>
-        <span class="logo-version">v1.2</span>
-      </div>
-      <div style="font-family:var(--font-mono);font-size:9px;color:var(--white4);margin-top:1px;">ARC TESTNET</div>
-    </div>
-  </div>
-  <button onclick="toggleSidebar()" id="sidebar-toggle" style="position:absolute;top:16px;right:12px;background:none;border:1px solid #222;color:var(--white4);cursor:pointer;font-size:13px;padding:5px 8px;transition:all 0.2s;border-radius:5px;z-index:200;" title="Toggle sidebar">☰</button>
-
-  <nav class="sidebar-nav">
-    <div class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
-      <span class="nav-icon">⬡</span>
-      <span>Dashboard</span>
-    </div>
-    <div class="nav-item" onclick="navigate('escrows')" id="nav-escrows">
-      <span class="nav-icon">◈</span>
-      <span>Escrows</span>
-      <span class="nav-badge" id="nav-badge" style="display:none;">0</span>
-    </div>
-    <div class="nav-item" onclick="navigate('create')" id="nav-create">
-      <span class="nav-icon">＋</span>
-      <span>New Escrow</span>
-    </div>
-    <div class="nav-item" onclick="navigate('arbitrator')" id="nav-arbitrator" style="display:none;">
-      <span class="nav-icon">⚖</span>
-      <span>Arbitrator</span>
-    </div>
-    <div style="flex:1;"></div>
-    <div class="nav-item" onclick="navigate('settings')" id="nav-settings">
-      <span class="nav-icon">⚙</span>
-      <span>Settings</span>
-    </div>
-  </nav>
-
-  <div class="sidebar-wallet">
-    <div id="sidebar-wallet-area">
-      <button class="connect-sidebar-btn" onclick="connectWallet()">Connect Wallet</button>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN -->
-<div class="main" id="main">
-
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <span class="topbar-title" id="topbar-title">Dashboard</span>
-    <div class="topbar-right">
-      <div class="role-toggle" id="role-toggle" style="display:none;">
-        <button class="role-btn active" onclick="setRole('client')" id="role-client">Client</button>
-        <button class="role-btn" onclick="setRole('freelancer')" id="role-freelancer">Freelancer</button>
-      </div>
-      <div class="topbar-chip" id="topbar-chip" style="display:none;"></div>
-    </div>
-  </div>
-
-  <!-- PAGES -->
-  <div class="page-content" id="page-content">
-    <!-- Rendered by JS -->
-  </div>
-
-  <!-- FOOTER -->
-  <div class="platform-footer" id="platform-footer" style="display:none;">
-    <span class="footer-item">◈ Clario Network</span>
-    <span class="footer-item">Total: <span id="ft-total">—</span></span>
-    <span class="footer-item">Active: <span id="ft-active">—</span></span>
-    <span class="footer-item">Completed: <span id="ft-completed">—</span></span>
-    <span class="footer-item">Disputed: <span id="ft-disputed">—</span></span>
-    <span class="footer-brand">Built on Arc · Powered by Circle USDC</span>
-  </div>
-</div>
-
-<!-- DELIVERY MODAL -->
-<div class="modal-overlay" id="delivery-modal" style="display:none;">
-  <div class="modal">
-    <div class="modal-title">Submit Your Delivery</div>
-    <div class="modal-sub">Share a link to your completed work. This gets stored permanently on Arc.</div>
-    <label class="flabel">Delivery Link</label>
-    <input class="finput" type="text" id="delivery-link-input" placeholder="https://drive.google.com/..."/>
-    <div style="font-size:11px;color:var(--white4);margin-top:6px;">Google Drive, Figma, GitHub — any public link works.</div>
-    <div class="modal-actions">
-      <button class="btn btn-primary btn-full" onclick="submitDelivery()">Submit Delivery</button>
-      <button class="btn btn-ghost" onclick="closeModal('delivery-modal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- DISPUTE MODAL -->
-<div class="modal-overlay" id="dispute-modal" style="display:none;">
-  <div class="modal">
-    <div class="modal-title">Raise a Dispute</div>
-    <div class="modal-sub">A Clario arbitrator will review both sides and decide the outcome on-chain. This action cannot be undone. Make sure you have a valid reason before proceeding.</div>
-    <div class="modal-actions">
-      <button class="btn btn-danger btn-full" onclick="raiseDispute()">Confirm — Raise Dispute</button>
-      <button class="btn btn-ghost" onclick="closeModal('dispute-modal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ── CONSTANTS ────────────────────────────────────────────────────────
-const CONTRACT  = "0xB1628a2b7536950833AC18681814dBD7466d7B36";
-const USDC_ADDR = "0x3600000000000000000000000000000000000000";
-const ARBITRATOR= "0x8ce69aef566ce2755672cc27739df4d43a0a6b3f";
-const USDC_DEC  = 6;
-
-const ABI = [
-  "function createEscrow(address,uint256,uint256,string) external",
-  "function submitDelivery(uint256,string) external",
-  "function releasePayment(uint256) external",
-  "function autoRelease(uint256) external",
-  "function raiseDispute(uint256) external",
-  "function resolveDispute(uint256,bool) external",
-  "function refund(uint256) external",
-  "function getEscrow(uint256) external view returns (tuple(uint256 id,address client,address freelancer,uint256 amount,uint256 deadline,uint256 autoReleaseTime,uint8 status,string description,string deliveryLink))",
-  "function escrowCount() external view returns (uint256)"
-];
-const USDC_ABI = [
-  "function approve(address,uint256) external returns (bool)",
-  "function allowance(address,address) external view returns (uint256)",
-  "function balanceOf(address) external view returns (uint256)"
-];
-
-const STATUS_LABELS = ['Active','Delivered','Completed','Disputed','Refunded'];
-const STATUS_BADGES = ['badge-active','badge-delivered','badge-completed','badge-disputed','badge-refunded'];
-const STATUS_CLASSES= ['status-active','status-delivered','status-completed','status-disputed','status-refunded'];
-
-// ── STATE ────────────────────────────────────────────────────────────
-let wallet=null, contract=null, usdc=null;
-let role='client', escrows=[], activeId=null, currentPage='dashboard';
-
-// ── NAVIGATION ───────────────────────────────────────────────────────
-const PAGE_TITLES = {dashboard:'Dashboard',escrows:'Escrows',create:'New Escrow',arbitrator:'Arbitrator Panel',settings:'Settings'};
-
-function navigate(page) {
-  currentPage = page;
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const nav = document.getElementById('nav-'+page);
-  if (nav) nav.classList.add('active');
-  document.getElementById('topbar-title').textContent = PAGE_TITLES[page] || page;
-  const roleToggle = document.getElementById('role-toggle');
-  roleToggle.style.display = (page === 'escrows') ? 'flex' : 'none';
-  renderPage(page);
-}
-
-// ── RENDER PAGES ─────────────────────────────────────────────────────
-function renderPage(page) {
-  const el = document.getElementById('page-content');
-  if (page === 'dashboard')   el.innerHTML = renderDashboard();
-  if (page === 'escrows')     renderEscrowsPage();
-  if (page === 'create')      el.innerHTML = renderCreateForm();
-  if (page === 'arbitrator')  renderArbitratorPage();
-  if (page === 'settings')    el.innerHTML = renderSettings();
-}
-
-// DASHBOARD
-function renderDashboard() {
-  const mine = wallet ? escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase()||e.freelancer.toLowerCase()===wallet.toLowerCase()) : [];
-  const vol = mine.reduce((a,e)=>a+e.amount,0);
-  return `
-  <div class="dashboard-hero">
-    <div class="hero-tag">Trustless Freelance Escrow</div>
-    <div class="hero-title">Clients can't ghost.<br><span>Freelancers can't be scammed.</span></div>
-    <div class="hero-sub">Clario locks USDC on Arc before work begins. Disputes settled on-chain. No middleman, no chargebacks, no waiting.</div>
-    <div class="hero-pills">
-      <span class="pill green">✓ USDC Escrow</span>
-      <span class="pill green">✓ Milestone Payments</span>
-      <span class="pill green">✓ Dispute Resolution</span>
-      <span class="pill green">✓ Auto-Release</span>
-      <span class="pill">Arc Network</span>
-      <span class="pill">Powered by Circle</span>
-    </div>
-  </div>
-  <div class="stats-grid">
-    <div class="stat-card" onclick="navigate('escrows')" style="cursor:pointer;">
-      <div class="stat-num white">${mine.length || '—'}</div>
-      <div class="stat-label">Your Escrows</div>
-      ${wallet?'<div class="stat-change">↗ All time</div>':''}
-    </div>
-    <div class="stat-card">
-      <div class="stat-num green">${mine.filter(e=>e.status===0||e.status===1).length || '—'}</div>
-      <div class="stat-label">Active</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num white">${mine.filter(e=>e.status===2).length || '—'}</div>
-      <div class="stat-label">Completed</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num green">${wallet ? vol.toFixed(2) : '—'}</div>
-      <div class="stat-label">USDC Volume</div>
-    </div>
-  </div>
-  ${!wallet ? `
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;max-width:400px;margin:0 auto;">
-    <div style="font-size:32px;margin-bottom:12px;">◈</div>
-    <div style="font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">Connect your wallet</div>
-    <div style="font-size:13px;color:var(--white4);margin-bottom:20px;line-height:1.6;">Connect MetaMask on Arc Testnet to create and manage escrows.</div>
-    <button class="btn btn-primary btn-full" onclick="connectWallet()">Connect Wallet</button>
-  </div>` : `
-  <div class="section-header">
-    <span class="section-title">Recent Escrows</span>
-    <button class="section-action" onclick="navigate('escrows')">View all →</button>
-  </div>
-  ${escrows.slice(0,3).map(e=>escrowCardHTML(e)).join('') || '<div class="empty"><div class="empty-icon">◈</div><div class="empty-title">No escrows yet</div><div class="empty-sub">Create your first escrow to get started</div></div>'}
-  `}`;
-}
-
-// ESCROWS PAGE
-function renderEscrowsPage() {
-  const el = document.getElementById('page-content');
-  const list = wallet ? (role==='client'
-    ? escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase())
-    : escrows.filter(e=>e.freelancer.toLowerCase()===wallet.toLowerCase()))
-    : escrows;
-
-  if (!wallet) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">◈</div><div class="empty-title">Connect your wallet</div><div class="empty-sub">Connect to view your escrows</div></div>`;
-    return;
-  }
-  if (!list.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">◈</div><div class="empty-title">No escrows found</div><div class="empty-sub">${role==='client'?'Create your first escrow to get started':'No escrows assigned to your wallet yet'}</div><br><button class="btn btn-primary" onclick="navigate('create')">+ New Escrow</button></div>`;
-    return;
-  }
-  el.innerHTML = `
-    <div class="section-header">
-      <span class="section-title">${role==='client'?'Your escrows as client':'Your escrows as freelancer'} · ${list.length} total</span>
-      <button class="section-action" onclick="loadEscrows()">↻ Refresh</button>
-    </div>
-    ${list.map(e=>escrowCardHTML(e)).join('')}
-    <div id="escrows-tx-bar"></div>`;
-}
-
-// ESCROW CARD HTML
-function escrowCardHTML(e) {
-  const isC = wallet && e.client.toLowerCase()===wallet.toLowerCase();
-  const isF = wallet && e.freelancer.toLowerCase()===wallet.toLowerCase();
-  const fee = (e.amount*0.01).toFixed(2);
-  const recv = (e.amount-parseFloat(fee)).toFixed(2);
-  const canAuto = e.status===1 && Date.now()/1000>=e.autoReleaseTime && e.autoReleaseTime>0;
-
-  // Milestone display (simulated as 50/50 split for V1.2)
-  const m1 = (e.amount*0.5).toFixed(2);
-  const m2 = (e.amount*0.5).toFixed(2);
-  const m1done = e.status >= 1;
-
-  const actions = `
-    ${e.status===0&&isF?`<button class="btn btn-primary" onclick="openDelivery(${e.id})">→ Submit Delivery</button>`:''}
-    ${e.status===1&&isC?`<button class="btn btn-primary" onclick="releasePayment(${e.id})">✓ Release Payment</button>`:''}
-    ${canAuto?`<button class="btn btn-ghost" onclick="autoReleasePayment(${e.id})">⏱ Auto Release</button>`:''}
-    ${(e.status===0||e.status===1)&&(isC||isF)?`<button class="btn btn-danger" onclick="openDispute(${e.id})">⚑ Raise Dispute</button>`:''}
-  `;
-
-  return `
-  <div class="escrow-card ${STATUS_CLASSES[e.status]}">
-    <div class="card-header">
-      <div>
-        <div class="card-meta">ESC-${String(e.id).padStart(4,'0')} · Due ${e.deadline}</div>
-        <div class="card-title">${e.description}</div>
-      </div>
-      <span class="badge ${STATUS_BADGES[e.status]}">${STATUS_LABELS[e.status]}</span>
-    </div>
-    <div class="card-grid">
-      <div class="card-cell"><div class="cell-label">Total Amount</div><div class="cell-val white">${e.amount.toFixed(2)} USDC</div></div>
-      <div class="card-cell"><div class="cell-label">Freelancer Gets</div><div class="cell-val green">${recv} USDC</div></div>
-      <div class="card-cell"><div class="cell-label">Protocol Fee</div><div class="cell-val">${fee} USDC</div></div>
-      <div class="card-cell"><div class="cell-label">Deadline</div><div class="cell-val" style="font-size:11px;">${e.deadline}</div></div>
-    </div>
-    <div class="milestone-bar">
-      <div class="milestone-label">Milestones</div>
-      <div class="milestones">
-        <div class="milestone ${e.status>=1?'done':''}">
-          <div class="milestone-num">Milestone 1 · 50%</div>
-          <div class="milestone-amount">${m1} USDC</div>
-          <div class="milestone-status">${e.status>=1?'✓ Released':'Pending'}</div>
-        </div>
-        <div class="milestone ${e.status>=2?'done':e.status>=1?'pending':''}">
-          <div class="milestone-num">Milestone 2 · 50%</div>
-          <div class="milestone-amount">${m2} USDC</div>
-          <div class="milestone-status">${e.status>=2?'✓ Released':e.status>=1?'⏳ Awaiting':'Locked'}</div>
-        </div>
-      </div>
-    </div>
-    <div class="card-addresses">
-      <span>Client: ${e.client.slice(0,10)}...${e.client.slice(-6)}</span>
-      <span>Freelancer: ${e.freelancer.slice(0,10)}...${e.freelancer.slice(-6)}</span>
-    </div>
-    ${e.deliveryLink?`<div class="delivery-link-box"><div class="delivery-link-label">Delivery Submitted</div><div class="delivery-link-url"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:''}
-    ${actions.trim()?`<div class="card-actions">${actions}</div>`:''}
-  </div>`;
-}
-
-// CREATE FORM
-function renderCreateForm() {
-  return `
-  <div class="form-container">
-    <div class="form-title">Create New Escrow</div>
-    <div class="form-subtitle">Funds are locked in a smart contract on Arc before work begins. Both parties are protected.</div>
-
-    <div class="form-section">
-      <div class="form-section-title">Project Details</div>
-      <div class="form-group full">
-        <label class="flabel">Describe the work</label>
-        <input class="finput" type="text" id="f-desc" placeholder="e.g. Logo design for Acme Corp"/>
-      </div>
-      <div class="form-group full">
-        <label class="flabel">Freelancer Wallet Address</label>
-        <input class="finput" type="text" id="f-freelancer" placeholder="0x..."/>
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-section-title">Payment & Timeline</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="flabel">Total Amount <span>(USDC)</span></label>
-          <input class="finput" type="number" id="f-amount" placeholder="50" oninput="updateBreakdown()"/>
-        </div>
-        <div class="form-group">
-          <label class="flabel">Days Until Deadline</label>
-          <input class="finput" type="number" id="f-days" placeholder="7"/>
-        </div>
-      </div>
-      <div style="background:var(--green5);border:1px solid var(--green4);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:8px;">
-        ⏱ Auto-release is fixed at <strong>3 days</strong> after delivery — if you don't respond, funds automatically go to the freelancer.
-      </div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-section-title">Milestone Split</div>
-      <div class="milestone-inputs">
-        <div class="milestone-input-card">
-          <div class="milestone-input-title">MILESTONE 1 — % of total</div>
-          <input class="finput" type="number" id="f-m1" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;"/>
-        </div>
-        <div class="milestone-input-card">
-          <div class="milestone-input-title">MILESTONE 2 — % of total</div>
-          <input class="finput" type="number" id="f-m2" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;" readonly/>
-        </div>
-      </div>
-    </div>
-
-    <div id="breakdown" style="display:none;" class="breakdown">
-      <div class="breakdown-title">Payment Breakdown</div>
-      <div class="breakdown-row"><span class="breakdown-key">Total you deposit</span><span class="breakdown-val white" id="bd-total">—</span></div>
-      <div class="breakdown-row"><span class="breakdown-key">Milestone 1 (upfront)</span><span class="breakdown-val" id="bd-m1">—</span></div>
-      <div class="breakdown-row"><span class="breakdown-key">Milestone 2 (on completion)</span><span class="breakdown-val" id="bd-m2">—</span></div>
-      <div class="breakdown-row"><span class="breakdown-key">Clario fee (1%)</span><span class="breakdown-val" id="bd-fee">—</span></div>
-      <div class="breakdown-row"><span class="breakdown-key">Freelancer receives total</span><span class="breakdown-val white" id="bd-recv">—</span></div>
-      <div class="breakdown-row"><span class="breakdown-key">Auto-release timeout</span><span class="breakdown-val">3 days (fixed by Clario)</span></div>
-    </div>
-
-    <div class="notice">⚠ Two MetaMask confirmations — first approves USDC, second creates the escrow.</div>
-    <button class="btn btn-primary btn-full" id="btn-create" onclick="createEscrow()">→ Lock Funds & Create Escrow</button>
-    <div id="create-tx-bar"></div>
-  </div>`;
-}
-
-function updateBreakdown() {
-  const a = parseFloat(document.getElementById('f-amount')?.value);
-  const m1p = parseFloat(document.getElementById('f-m1')?.value) || 50;
-  const t = 3;
-  const bd = document.getElementById('breakdown');
-  if (!bd) return;
-  if (a > 0) {
-    bd.style.display = 'block';
-    const fee = (a*0.01).toFixed(2);
-    const recv = (a - parseFloat(fee)).toFixed(2);
-    const m1 = (a * m1p/100).toFixed(2);
-    const m2 = (a * (100-m1p)/100).toFixed(2);
-    // auto-sync m2
-    const m2el = document.getElementById('f-m2');
-    if (m2el) m2el.value = 100-m1p;
-    document.getElementById('bd-total').textContent = a.toFixed(2)+' USDC';
-    document.getElementById('bd-m1').textContent = m1+' USDC';
-    document.getElementById('bd-m2').textContent = m2+' USDC';
-    document.getElementById('bd-fee').textContent = fee+' USDC';
-    document.getElementById('bd-recv').textContent = recv+' USDC';
-    document.getElementById('bd-timeout').textContent = t+' days';
-  } else { bd.style.display='none'; }
-}
-
-// ARBITRATOR PAGE
-function renderArbitratorPage() {
-  const el = document.getElementById('page-content');
-  const disputed = escrows.filter(e=>e.status===3);
-  el.innerHTML = `
-    <div class="arb-header">⚖ Arbitrator Panel — Only visible to your wallet. Resolve disputed escrows below.</div>
-    <div class="section-header">
-      <span class="section-title">Disputed Escrows · ${disputed.length}</span>
-      <button class="section-action" onclick="loadEscrows().then(()=>renderArbitratorPage())">↻ Refresh</button>
-    </div>
-    ${!disputed.length ? `<div class="empty"><div class="empty-icon">⚖</div><div class="empty-title">No active disputes</div><div class="empty-sub">All escrows are clear</div></div>` :
-    disputed.map(e=>`
-      <div class="escrow-card status-disputed">
-        <div class="card-header">
-          <div>
-            <div class="card-meta">ESC-${String(e.id).padStart(4,'0')}</div>
-            <div class="card-title">${e.description}</div>
-          </div>
-          <span class="badge badge-disputed">DISPUTED</span>
-        </div>
-        <div class="card-grid">
-          <div class="card-cell"><div class="cell-label">Amount</div><div class="cell-val white">${e.amount.toFixed(2)} USDC</div></div>
-          <div class="card-cell"><div class="cell-label">Client</div><div class="cell-val" style="font-size:10px;">${e.client.slice(0,10)}...${e.client.slice(-4)}</div></div>
-          <div class="card-cell"><div class="cell-label">Freelancer</div><div class="cell-val" style="font-size:10px;">${e.freelancer.slice(0,10)}...${e.freelancer.slice(-4)}</div></div>
-          <div class="card-cell"><div class="cell-label">Deadline</div><div class="cell-val" style="font-size:11px;">${e.deadline}</div></div>
-        </div>
-        ${e.deliveryLink?`<div class="delivery-link-box"><div class="delivery-link-label">Freelancer Delivery</div><div class="delivery-link-url"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:'<div style="font-size:11px;color:var(--white4);margin-bottom:12px;">No delivery submitted by freelancer</div>'}
-        <div class="card-actions">
-          <button class="btn btn-primary" onclick="resolveDispute(${e.id},true)">✓ Favor Freelancer — Pay them</button>
-          <button class="btn btn-danger" onclick="resolveDispute(${e.id},false)">✗ Favor Client — Refund them</button>
-        </div>
-      </div>
-    `).join('')}
-    <div id="arb-tx-bar"></div>`;
-}
-
-// SETTINGS PAGE
-function renderSettings() {
-  return `
-  <div class="about-card">
-    <div class="about-logo-row">
-      <div class="about-mark">C</div>
-      <div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="about-name">Clario</span>
-          <span class="about-version">v1.2</span>
-        </div>
-        <div style="font-family:var(--font-mono);font-size:10px;color:var(--white4);margin-top:2px;">Arc Testnet</div>
-      </div>
-    </div>
-    <div class="about-desc">Clario is a trustless freelance escrow protocol built on Arc — Circle's purpose-built L1 blockchain. It protects both clients and freelancers by locking USDC in a smart contract before work begins. No middleman. No chargebacks. No ghosting. Disputes are settled on-chain by a neutral arbitrator.</div>
-    <div class="about-tags">
-      <span class="about-tag">USDC Escrow</span>
-      <span class="about-tag">Milestone Payments</span>
-      <span class="about-tag">Dispute Resolution</span>
-      <span class="about-tag">Auto-Release</span>
-      <span class="about-tag">Arc Network</span>
-      <span class="about-tag">Circle</span>
-    </div>
-  </div>
-
-  <div class="settings-grid">
-    <div class="settings-card">
-      <div class="settings-card-title">🔗 Wallet Info</div>
-      ${wallet ? `
-        <div class="settings-row">
-          <span class="settings-key">Connected Address</span>
-          <span class="settings-val green">${wallet.slice(0,10)}...${wallet.slice(-6)}</span>
-        </div>
-        <div class="settings-row">
-          <span class="settings-key">Network</span>
-          <span class="settings-val green">Arc Testnet</span>
-        </div>
-        <div class="settings-row">
-          <span class="settings-key">Chain ID</span>
-          <span class="settings-val">5042002</span>
-        </div>
-        <div class="settings-row">
-          <span class="settings-key">Role</span>
-          <span class="settings-val green" style="text-transform:capitalize;">${role}</span>
-        </div>
-      ` : `<div style="text-align:center;padding:20px 0;"><div style="font-size:12px;color:var(--white4);margin-bottom:12px;">No wallet connected</div><button class="btn btn-primary" onclick="connectWallet()">Connect Wallet</button></div>`}
-    </div>
-
-    <div class="settings-card">
-      <div class="settings-card-title">📋 Contract Info</div>
-      <div class="settings-row">
-        <span class="settings-key">Clario Contract</span>
-        <span class="settings-val copy" onclick="copyText('${CONTRACT}')" title="Click to copy">${CONTRACT.slice(0,10)}...${CONTRACT.slice(-6)}</span>
-      </div>
-      <div class="settings-row">
-        <span class="settings-key">USDC Address</span>
-        <span class="settings-val copy" onclick="copyText('${USDC_ADDR}')" title="Click to copy">${USDC_ADDR.slice(0,10)}...${USDC_ADDR.slice(-6)}</span>
-      </div>
-      <div class="settings-row">
-        <span class="settings-key">Protocol Fee</span>
-        <span class="settings-val green">1%</span>
-      </div>
-      <div class="settings-row">
-        <span class="settings-key">Explorer</span>
-        <span class="settings-val"><a href="https://testnet.arcscan.app/address/${CONTRACT}" target="_blank" style="color:var(--green);text-decoration:none;">View on ArcScan ↗</a></span>
-      </div>
-    </div>
-  </div>`;
-}
-
-function copyText(text) {
-  navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard!'));
-}
-
-// ── WALLET ───────────────────────────────────────────────────────────
-async function connectWallet() {
-  if (!window.ethereum) return alert("Please install MetaMask to continue");
-  try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = await provider.getSigner();
-    wallet = await signer.getAddress();
-    contract = new ethers.Contract(CONTRACT, ABI, signer);
-    usdc = new ethers.Contract(USDC_ADDR, USDC_ABI, signer);
-
-    // Update sidebar
-    document.getElementById('sidebar-wallet-area').innerHTML = `
-      <div class="wallet-card">
-        <div class="wallet-label">Connected Wallet</div>
-        <div class="wallet-addr">${wallet.slice(0,8)}...${wallet.slice(-6)}</div>
-        <div class="wallet-network">
-          <div class="network-dot"></div>
-          Arc Testnet
-        </div>
-      </div>`;
-
-    // Update topbar
-    document.getElementById('topbar-chip').textContent = wallet.slice(0,6)+'...'+wallet.slice(-4);
-    document.getElementById('topbar-chip').style.display = 'block';
-    document.getElementById('role-toggle').style.display = 'flex';
-
-    // Show arbitrator tab if owner
-    if (wallet.toLowerCase() === ARBITRATOR) {
-      document.getElementById('nav-arbitrator').style.display = 'flex';
-    }
-
-    await loadEscrows();
-    renderPage(currentPage);
-  } catch(e) { alert(e.reason || e.message); }
-}
-
-// ── LOAD ESCROWS ─────────────────────────────────────────────────────
-async function loadEscrows() {
-  if (!contract) return;
-  try {
-    const count = Number(await contract.escrowCount());
-    escrows = [];
-    for (let i = count; i >= 1; i--) {
-      try {
-        const e = await contract.getEscrow(i);
-        escrows.push({
-          id: Number(e.id),
-          client: e.client,
-          freelancer: e.freelancer,
-          amount: Number(ethers.formatUnits(e.amount, USDC_DEC)),
-          deadline: new Date(Number(e.deadline)*1000).toLocaleDateString(),
-          autoReleaseTime: Number(e.autoReleaseTime),
-          status: Number(e.status),
-          description: e.description,
-          deliveryLink: e.deliveryLink
-        });
-      } catch(err) { console.warn(err); }
-    }
-    updateFooter();
-    updateNavBadge();
-  } catch(e) { console.error(e); }
-}
-
-function updateFooter() {
-  document.getElementById('platform-footer').style.display = 'flex';
-  document.getElementById('ft-total').textContent = escrows.length;
-  document.getElementById('ft-active').textContent = escrows.filter(e=>e.status===0||e.status===1).length;
-  document.getElementById('ft-completed').textContent = escrows.filter(e=>e.status===2).length;
-  document.getElementById('ft-disputed').textContent = escrows.filter(e=>e.status===3).length;
-}
-
-function updateNavBadge() {
-  if (!wallet) return;
-  const mine = escrows.filter(e=>
-    (e.client.toLowerCase()===wallet.toLowerCase()||e.freelancer.toLowerCase()===wallet.toLowerCase())
-    && (e.status===0||e.status===1)
-  );
-  const badge = document.getElementById('nav-badge');
-  if (mine.length > 0) {
-    badge.textContent = mine.length;
-    badge.style.display = 'inline';
-  } else {
-    badge.style.display = 'none';
-  }
-}
-
-// ── ROLE ─────────────────────────────────────────────────────────────
-function setRole(r) {
-  role = r;
-  document.getElementById('role-client').className = 'role-btn'+(r==='client'?' active':'');
-  document.getElementById('role-freelancer').className = 'role-btn'+(r==='freelancer'?' active':'');
-  if (currentPage === 'escrows') renderEscrowsPage();
-}
-
-// ── CREATE ESCROW ────────────────────────────────────────────────────
-async function createEscrow() {
-  if (!contract) return alert("Connect wallet first");
-  const desc = document.getElementById('f-desc')?.value.trim();
-  const fl = document.getElementById('f-freelancer')?.value.trim();
-  const amt = document.getElementById('f-amount')?.value.trim();
-  const days = document.getElementById('f-days')?.value.trim();
-  if (!desc||!fl||!amt||!days) return alert("All fields are required");
-
-  const btn = document.getElementById('btn-create');
-  btn.disabled = true; btn.textContent = '// Approving USDC...';
-  try {
-    const amount = ethers.parseUnits(amt, USDC_DEC);
-    const allowance = await usdc.allowance(wallet, CONTRACT);
-    if (allowance < amount) {
-      const tx = await usdc.approve(CONTRACT, amount);
-      await tx.wait();
-    }
-    btn.textContent = '// Creating escrow on Arc...';
-    const tx = await contract.createEscrow(fl, amount, Number(days), desc);
-    const txBar = document.getElementById('create-tx-bar');
-    if (txBar) txBar.innerHTML = `<div class="tx-bar">// tx broadcast → <a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,22)}...${tx.hash.slice(-8)}</a></div>`;
-    await tx.wait();
-    await loadEscrows();
-    navigate('escrows');
-  } catch(e) { alert(e.reason || e.message); }
-  if (btn) { btn.disabled = false; btn.textContent = '→ Lock Funds & Create Escrow'; }
-}
-
-// ── MODALS ───────────────────────────────────────────────────────────
-function openDelivery(id) { activeId=id; document.getElementById('delivery-modal').style.display='flex'; }
-function openDispute(id)  { activeId=id; document.getElementById('dispute-modal').style.display='flex'; }
-function closeModal(id)   { document.getElementById(id).style.display='none'; activeId=null; }
-
-// ── ACTIONS ──────────────────────────────────────────────────────────
-async function submitDelivery() {
-  const link = document.getElementById('delivery-link-input').value.trim();
-  if (!link) return alert("Please enter a delivery link");
-  if (!contract) return alert("Wallet not connected. Please reconnect.");
-  const id = activeId;
-  closeModal('delivery-modal');
-  try {
-    const tx = await contract.submitDelivery(id, link);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-    renderPage(currentPage);
-  } catch(e) { alert(e.reason || e.message); }
-}
-
-async function releasePayment(id) {
-  if (!contract) return alert("Wallet not connected. Please reconnect.");
-  try {
-    const tx = await contract.releasePayment(id);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-    renderPage(currentPage);
-  } catch(e) { alert(e.reason || e.message); }
-}
-
-async function autoReleasePayment(id) {
-  if (!contract) return alert("Wallet not connected. Please reconnect.");
-  try {
-    const tx = await contract.autoRelease(id);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-    renderPage(currentPage);
-  } catch(e) { alert(e.reason || e.message); }
-}
-
-async function raiseDispute() {
-  if (!contract) return alert("Wallet not connected. Please reconnect.");
-  const id = activeId;
-  closeModal('dispute-modal');
-  try {
-    const tx = await contract.raiseDispute(id);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-    renderPage(currentPage);
-  } catch(e) { alert(e.reason || e.message); }
-}
-
-async function resolveDispute(id, favorFreelancer) {
-  if (!contract) return alert("Wallet not connected");
-  const side = favorFreelancer ? "freelancer" : "client";
-  if (!confirm(`Resolve in favor of the ${side}? This cannot be undone.`)) return;
-  try {
-    const tx = await contract.resolveDispute(id, favorFreelancer);
-    showTx(tx.hash);
-    await tx.wait();
-    await loadEscrows();
-    renderArbitratorPage();
-    alert("Dispute resolved successfully!");
-  } catch(e) { alert(e.reason || e.message); }
-}
-
-function showTx(hash) {
-  const txHTML = `<div class="tx-bar">// tx confirmed on Arc → <a href="https://testnet.arcscan.app/tx/${hash}" target="_blank">${hash.slice(0,24)}...${hash.slice(-8)}</a></div>`;
-  ['escrows-tx-bar','arb-tx-bar','create-tx-bar'].forEach(id=>{
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = txHTML;
+import {
+  AbsoluteFill,
+  useCurrentFrame,
+  useVideoConfig,
+  interpolate,
+  spring,
+  Sequence,
+} from 'remotion';
+
+// ─────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────
+const FPS = 30;
+const f = (sec) => Math.round(sec * FPS);
+
+const C = {
+  green: '#22c55e',
+  greenDark: '#166534',
+  greenMid: '#16a34a',
+  greenDim: '#4d8c4d',
+  greenFaint: '#2a5c2a',
+  greenBg: '#061a06',
+  greenBorder: '#0d3d1a',
+  gridBorder: '#0d2d0d',
+  cardBg: '#060f06',
+  black: '#000',
+  nearBlack: '#0a0a0a',
+  darkGray: '#1a1a1a',
+  textWhite: '#fff',
+  textMono: '#c8ffc8',
+};
+
+const FONTS = {
+  syne: "'Syne', 'Georgia', serif",
+  dm: "'DM Sans', 'Helvetica Neue', sans-serif",
+  mono: "'JetBrains Mono', 'Courier New', monospace",
+};
+
+// ─────────────────────────────────────────────
+// ANIMATION HELPERS
+// ─────────────────────────────────────────────
+const eIn = (frame, start, dur, from = 0, to = 1) =>
+  interpolate(frame, [start, start + dur], [from, to], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
   });
-}
 
-// ── INIT ─────────────────────────────────────────────────────────────
-navigate('dashboard');
+const eOut = (frame, start, dur, from = 1, to = 0) =>
+  interpolate(frame, [start, start + dur], [from, to], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
-// ── SIDEBAR TOGGLE ────────────────────────────────────────────────────
-function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  const main = document.getElementById('main');
-  sidebar.classList.toggle('collapsed');
-  main.classList.toggle('expanded');
-}
-</script>
-</body>
-</html>
+const slideY = (frame, start, dur, fromY = 30, toY = 0) =>
+  interpolate(frame, [start, start + dur], [fromY, toY], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+const useSpring = (frame, delay = 0) =>
+  spring({ frame: frame - delay, fps: FPS, config: { damping: 14, stiffness: 120 } });
+
+// ─────────────────────────────────────────────
+// SHARED UI COMPONENTS
+// ─────────────────────────────────────────────
+
+const GridBg = () => (
+  <div style={{
+    position: 'absolute', inset: 0,
+    backgroundImage: `linear-gradient(rgba(22,101,52,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(22,101,52,0.06) 1px,transparent 1px)`,
+    backgroundSize: '60px 60px',
+    pointerEvents: 'none',
+  }} />
+);
+
+const StepBadge = ({ text }) => (
+  <div style={{
+    position: 'absolute', top: 20, right: 20, zIndex: 900,
+    fontFamily: FONTS.mono, fontSize: 10, color: C.greenFaint,
+    background: 'rgba(0,0,0,0.7)', border: `1px solid ${C.gridBorder}`,
+    borderRadius: 6, padding: '6px 12px',
+  }}>{text}</div>
+);
+
+const Caption = ({ text, opacity }) => (
+  <div style={{
+    position: 'absolute', bottom: 36, left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'rgba(0,0,0,0.88)', border: `1px solid ${C.greenBorder}`,
+    borderRadius: 8, padding: '10px 28px',
+    fontSize: 14, fontWeight: 600, color: C.green,
+    fontFamily: FONTS.dm, whiteSpace: 'nowrap',
+    opacity, zIndex: 900,
+  }}>{text}</Caption>
+);
+
+const Cursor = ({ x, y, opacity, clicking }) => (
+  <div style={{
+    position: 'absolute', zIndex: 9000, pointerEvents: 'none',
+    left: x, top: y,
+    width: 22, height: 22, borderRadius: '50%',
+    background: 'rgba(34,197,94,0.85)',
+    boxShadow: '0 0 0 3px rgba(34,197,94,0.25), 0 0 18px rgba(34,197,94,0.5)',
+    transform: `translate(-50%,-50%) scale(${clicking ? 0.55 : 1})`,
+    opacity,
+    transition: 'transform 0.15s',
+  }} />
+);
+
+const HighlightRing = ({ x, y, w, h, opacity }) => (
+  <div style={{
+    position: 'absolute', zIndex: 8000, pointerEvents: 'none',
+    left: x, top: y, width: w, height: h,
+    border: `2px solid ${C.green}`,
+    borderRadius: 8,
+    boxShadow: '0 0 24px rgba(34,197,94,0.35)',
+    opacity,
+  }} />
+);
+
+// Browser chrome wrapper — positioned at left:100, top:30, width:1080
+const Browser = ({ children, wallet = null }) => (
+  <div style={{
+    position: 'absolute', left: 100, top: 30, width: 1080,
+    background: '#111', borderRadius: 12, border: '1px solid #1a2a1a',
+    overflow: 'hidden',
+    boxShadow: '0 40px 120px rgba(0,0,0,0.8), 0 0 0 1px rgba(34,197,94,0.1)',
+    fontFamily: FONTS.dm,
+  }}>
+    {/* Browser bar */}
+    <div style={{ background: '#1a1a1a', height: 38, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 8, borderBottom: '1px solid #222' }}>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {['#ff5f57', '#febc2e', '#28c840'].map(c => (
+          <div key={c} style={{ width: 12, height: 12, borderRadius: '50%', background: c }} />
+        ))}
+      </div>
+      <div style={{ flex: 1, margin: '0 16px', background: '#0a0a0a', borderRadius: 6, height: 24, display: 'flex', alignItems: 'center', padding: '0 12px', fontFamily: FONTS.mono, fontSize: 11, color: '#4d8c4d' }}>
+        clario-app.vercel.app
+      </div>
+    </div>
+    {/* App header */}
+    <div style={{ background: C.black, borderBottom: `1px solid ${C.gridBorder}`, height: 52, display: 'flex', alignItems: 'center', padding: '0 24px', gap: 10 }}>
+      <div style={{ width: 26, height: 26, background: `linear-gradient(135deg,${C.greenDark},${C.greenMid})`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONTS.syne, fontSize: 12, fontWeight: 800, color: '#fff' }}>C</div>
+      <span style={{ fontFamily: FONTS.syne, fontSize: 16, fontWeight: 800, color: '#fff' }}>Clario</span>
+      <span style={{ fontFamily: FONTS.mono, fontSize: 8, color: C.green, background: C.greenBg, border: `1px solid ${C.greenBorder}`, padding: '2px 7px', borderRadius: 20, letterSpacing: 1 }}>ARC TESTNET</span>
+      <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+        {['Client', 'Freelancer'].map(t => (
+          <button key={t} style={{ fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 5, background: 'transparent', color: '#4d8c4d', border: `1px solid ${C.gridBorder}`, cursor: 'pointer' }}>{t}</button>
+        ))}
+        {wallet
+          ? <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: C.green, background: C.greenBg, border: `1px solid ${C.greenBorder}`, padding: '5px 12px', borderRadius: 5 }}>{wallet}</div>
+          : <button style={{ fontSize: 11, fontWeight: 700, padding: '6px 16px', borderRadius: 5, background: C.greenDark, color: C.green, border: `1px solid ${C.greenMid}` }}>Connect Wallet</button>
+        }
+      </div>
+    </div>
+    {children}
+  </div>
+);
+
+const HeroBanner = () => (
+  <div style={{ padding: '28px 24px 20px', borderBottom: `1px solid ${C.gridBorder}` }}>
+    <div style={{ fontFamily: FONTS.syne, fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1.15, marginBottom: 8 }}>
+      Trustless payments for<br /><span style={{ color: C.green }}>freelancers & clients.</span>
+    </div>
+    <div style={{ fontSize: 11, color: '#4d8c4d', lineHeight: 1.6, maxWidth: 400, marginBottom: 12 }}>
+      Clario escrows your USDC on Arc. Clients can't ghost. Freelancers can't be scammed.
+    </div>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {['✓ USDC Escrow', '✓ Dispute Resolution', '✓ Auto-Release in 3 days', '✓ 1% Protocol Fee'].map(p => (
+        <span key={p} style={{ fontSize: 9, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: C.greenBg, color: C.green, border: `1px solid ${C.greenBorder}` }}>{p}</span>
+      ))}
+    </div>
+  </div>
+);
+
+const InfoBanner = () => (
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: C.gridBorder, border: `1px solid ${C.gridBorder}`, borderRadius: 8, overflow: 'hidden', margin: '14px 24px' }}>
+    {[['100%', 'Funds locked before work begins'], ['3 days', 'Auto-release if client goes silent'], ['1%', 'Protocol fee on settled escrows']].map(([n, d]) => (
+      <div key={n} style={{ background: C.cardBg, padding: '12px 16px' }}>
+        <div style={{ fontFamily: FONTS.syne, fontSize: 18, fontWeight: 800, color: C.green }}>{n}</div>
+        <div style={{ fontSize: 9, fontWeight: 600, color: C.greenFaint, marginTop: 3 }}>{d}</div>
+      </div>
+    ))}
+  </div>
+);
+
+const StatBar = ({ total, active, completed, vol }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: `1px solid ${C.gridBorder}` }}>
+    {[[total, 'Your Escrows'], [active, 'Active'], [completed, 'Completed'], [vol, 'USDC Volume']].map(([val, label]) => (
+      <div key={label} style={{ padding: '12px 18px', borderRight: `1px solid ${C.gridBorder}` }}>
+        <div style={{ fontFamily: FONTS.syne, fontSize: 22, fontWeight: 800, color: C.green }}>{val}</div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: C.greenFaint, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 3 }}>{label}</div>
+      </div>
+    ))}
+  </div>
+);
+
+const EscrowCard = ({ status = 'active', showLink = false, showDeliverBtn = true }) => {
+  const badge = { active: { bg: '#0a1a00', color: C.green, border: '#0d3d1a', label: 'ACTIVE' }, delivered: { bg: '#1a1000', color: '#f59e0b', border: '#3d2800', label: 'DELIVERED' }, completed: { bg: '#001a0a', color: '#4ade80', border: '#0d4a1a', label: 'COMPLETED' } }[status];
+  return (
+    <div style={{ background: C.cardBg, border: `1px solid ${C.gridBorder}`, borderRadius: 8, padding: 14, marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+        <div>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 8, color: C.greenFaint, marginBottom: 3 }}>ESC-0001</div>
+          <div style={{ fontFamily: FONTS.syne, fontSize: 13, fontWeight: 700, color: '#fff' }}>Logo design for my brand</div>
+        </div>
+        <span style={{ fontFamily: FONTS.mono, fontSize: 8, fontWeight: 600, padding: '3px 8px', borderRadius: 20, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>{badge.label}</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 8 }}>
+        {[['Amount', '50.00 USDC'], ['Freelancer gets', '49.50 USDC'], ['Deadline', '16 May 2026']].map(([label, val]) => (
+          <div key={label} style={{ background: C.black, border: `1px solid ${C.gridBorder}`, borderRadius: 5, padding: '7px 9px' }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: C.greenFaint, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+            <div style={{ fontFamily: FONTS.mono, fontSize: 11, fontWeight: 600, color: C.textMono, marginTop: 2 }}>{val}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontFamily: FONTS.mono, fontSize: 8, color: '#1a4a1a', marginBottom: 8, padding: '5px 8px', background: C.black, borderRadius: 4, border: '1px solid #0a1a0a', display: 'flex', justifyContent: 'space-between' }}>
+        <span>Client: 0x8CE6...B3f</span><span>Freelancer: 0xA4f7...9c2E</span>
+      </div>
+      {showLink && (
+        <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 5, padding: '7px 10px', marginBottom: 8, fontFamily: FONTS.mono, fontSize: 8, color: C.green }}>
+          drive.google.com/file/clario-logo-design
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {status === 'active' && showDeliverBtn && <button style={{ fontSize: 10, fontWeight: 700, padding: '7px 14px', borderRadius: 5, background: '#0d3d1a', color: C.green, border: `1px solid ${C.greenDark}` }}>→ Submit Delivery</button>}
+        {status === 'delivered' && <button style={{ fontSize: 10, fontWeight: 700, padding: '7px 14px', borderRadius: 5, background: '#0d3d1a', color: C.green, border: `1px solid ${C.greenDark}` }}>✓ Release Payment</button>}
+        {status !== 'completed' && <button style={{ fontSize: 10, fontWeight: 700, padding: '7px 14px', borderRadius: 5, background: '#1a0000', color: '#f87171', border: '1px solid #3d0000' }}>⚑ Dispute</button>}
+      </div>
+    </div>
+  );
+};
+
+const MMPopup = ({ amount, label, opacity, x = 818, y = 95 }) => (
+  <div style={{
+    position: 'absolute', left: x, top: y, opacity,
+    background: '#1a1a1a', border: '1px solid #333', borderRadius: 12,
+    width: 220, padding: 16,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+    fontFamily: FONTS.dm, zIndex: 100,
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <span style={{ fontSize: 20 }}>🦊</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>MetaMask</span>
+    </div>
+    <div style={{ background: '#0a1a0a', border: `1px solid ${C.greenBorder}`, borderRadius: 6, padding: '8px 10px', marginBottom: 10 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: C.green }}>Arc Testnet</div>
+      <div style={{ fontSize: 9, color: C.greenDim, marginTop: 2 }}>Chain ID: 5042002</div>
+    </div>
+    <div style={{ fontFamily: FONTS.mono, fontSize: 16, fontWeight: 700, color: '#fff', textAlign: 'center', margin: '10px 0' }}>{amount}</div>
+    <div style={{ fontSize: 9, color: '#666', textAlign: 'center', marginBottom: 12 }}>{label}</div>
+    <div style={{ display: 'flex', gap: 6 }}>
+      <button style={{ flex: 1, padding: 7, borderRadius: 6, background: '#1a1a1a', border: '1px solid #333', color: '#999', fontSize: 10, fontWeight: 700 }}>Reject</button>
+      <button style={{ flex: 1, padding: 7, borderRadius: 6, background: C.greenDark, border: 'none', color: C.green, fontSize: 10, fontWeight: 700 }}>Confirm</button>
+    </div>
+  </div>
+);
+
+const TxBar = ({ hash }) => (
+  <div style={{ background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 6, padding: '8px 12px', fontFamily: FONTS.mono, fontSize: 9, color: C.green, margin: '0 24px 10px' }}>
+    // tx confirmed on Arc → {hash} · View on Explorer ↗
+  </div>
+);
+
+// ─────────────────────────────────────────────
+// SCENE 1 — INTRO SPLASH (0s–5s)
+// ─────────────────────────────────────────────
+const SceneIntro = () => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ background: C.black, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+      <GridBg />
+      <div style={{ opacity: eIn(frame, 0, 20), transform: `translateY(${slideY(frame, 0, 25)}px)`, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 56, height: 56, background: `linear-gradient(135deg,${C.greenDark},${C.greenMid})`, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONTS.syne, fontSize: 28, fontWeight: 800, color: '#fff' }}>C</div>
+        <span style={{ fontFamily: FONTS.syne, fontSize: 56, fontWeight: 800, color: '#fff', letterSpacing: -2 }}>Clario</span>
+      </div>
+      <div style={{ opacity: eIn(frame, 15, 20), fontFamily: FONTS.mono, fontSize: 13, color: C.green, background: C.greenBg, border: `1px solid ${C.greenBorder}`, padding: '4px 16px', borderRadius: 20, letterSpacing: 2 }}>
+        BUILT ON ARC · POWERED BY USDC
+      </div>
+      <div style={{ opacity: eIn(frame, 25, 20), fontFamily: FONTS.syne, fontSize: 24, fontWeight: 700, color: '#4d8c4d' }}>
+        Trustless Freelance Escrow
+      </div>
+      <div style={{ opacity: eIn(frame, 35, 20), display: 'flex', gap: 12 }}>
+        {['✓ USDC Escrow', '✓ Dispute Resolution', '✓ Auto-Release', '✓ 1% Fee'].map(p => (
+          <span key={p} style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, background: C.greenBg, color: C.green, border: `1px solid ${C.greenBorder}` }}>{p}</span>
+        ))}
+      </div>
+      <Caption text="Welcome to Clario — Trustless Freelance Escrow on Arc" opacity={eIn(frame, 40, 15)} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 2 — LANDING PAGE (5s–13s)
+// ─────────────────────────────────────────────
+const SceneLanding = () => {
+  const frame = useCurrentFrame();
+  // Zoom into pills at ~3s mark (frame 90)
+  const zoomScale = interpolate(frame, [f(3), f(4.5), f(6), f(7)], [1, 1.35, 1.35, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const zoomOriginX = 130 - 100; // pills start ~130px from browser left
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="1/6 · Landing Page" />
+      <div style={{ opacity: eIn(frame, 0, 20) }}>
+        <Browser>
+          <HeroBanner />
+          <InfoBanner />
+          <div style={{ padding: '0 24px 20px', color: C.greenFaint, fontSize: 11, textAlign: 'center' }}>No escrows yet — connect your wallet to get started</div>
+        </Browser>
+      </div>
+      {/* Cursor pointing at pills */}
+      <Cursor x={420} y={265} opacity={interpolate(frame, [f(2.5), f(3)], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={false} />
+      {/* Highlight ring around pills area */}
+      <HighlightRing x={109} y={240} w={500} h={34} opacity={interpolate(frame, [f(3), f(3.3), f(5.5), f(6)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="Notice the key features — USDC Escrow, Dispute Resolution, Auto-Release" opacity={interpolate(frame, [f(3), f(3.5), f(6.5), f(7)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="This is the Clario homepage — clean, dark, and ready" opacity={interpolate(frame, [f(0.3), f(1), f(2.5), f(3)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 3 — CONNECT WALLET (13s–23s)
+// ─────────────────────────────────────────────
+const SceneWallet = () => {
+  const frame = useCurrentFrame();
+  const mmVisible = frame >= f(1.5);
+  const confirmClicked = frame >= f(5);
+  const walletShown = frame >= f(7);
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="2/6 · Connect Wallet" />
+      <Browser wallet={walletShown ? '0x8CE6...B3f' : null}>
+        <HeroBanner />
+        <InfoBanner />
+        <div style={{ padding: '0 24px 20px', color: C.greenFaint, fontSize: 11, textAlign: 'center' }}>No escrows yet — create one to get started</div>
+      </Browser>
+      {/* Cursor moving to Connect Wallet button */}
+      <Cursor
+        x={interpolate(frame, [0, f(1)], [640, 990], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
+        y={interpolate(frame, [0, f(1)], [360, 81], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
+        opacity={interpolate(frame, [0, f(0.3), f(6.5), f(7)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
+        clicking={interpolate(frame, [f(1.2), f(1.4)], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }) > 0.5}
+      />
+      {/* Highlight Connect Wallet */}
+      <HighlightRing x={940} y={68} w={130} h={28} opacity={interpolate(frame, [f(0.8), f(1.2), f(1.5), f(2)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      {/* MetaMask popup */}
+      {mmVisible && !confirmClicked && (
+        <MMPopup amount="Connect" label="Connect to Clario on Arc Testnet" opacity={eIn(frame - f(1.5), 0, 10)} />
+      )}
+      {/* Cursor on Confirm */}
+      {mmVisible && !confirmClicked && (
+        <>
+          <Cursor x={895} y={210} opacity={eIn(frame - f(2), 0, 10)} clicking={frame > f(4.8)} />
+          <HighlightRing x={868} y={200} w={65} h={28} opacity={interpolate(frame, [f(2.5), f(3), f(4.8), f(5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+        </>
+      )}
+      {/* Wallet address ring */}
+      {walletShown && (
+        <HighlightRing x={940} y={68} w={120} h={28} opacity={interpolate(frame, [f(7), f(7.5), f(9), f(9.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      )}
+      <Caption text="Click 'Connect Wallet' to get started" opacity={interpolate(frame, [f(0.5), f(1), f(1.4), f(1.8)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="MetaMask pops up — confirm the connection" opacity={interpolate(frame, [f(2), f(2.5), f(4.5), f(5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="Wallet connected! Your address appears in the top right" opacity={interpolate(frame, [f(7.3), f(8), f(9.5), f(10)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 4 — CREATE ESCROW FORM (23s–41s)
+// ─────────────────────────────────────────────
+const SceneCreate = () => {
+  const frame = useCurrentFrame();
+  const fieldsVisible = frame >= f(4);
+  const hintVisible = frame >= f(8);
+
+  const cursorX = interpolate(frame,
+    [0, f(1), f(2), f(3), f(4), f(5), f(6), f(7), f(8)],
+    [640, 480, 480, 480, 480, 620, 480, 620, 620],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const cursorY = interpolate(frame,
+    [0, f(1), f(2), f(3), f(4), f(5), f(6), f(7), f(8)],
+    [360, 330, 370, 410, 460, 460, 530, 530, 580],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="3/6 · Creating Escrow" />
+      <Browser wallet="0x8CE6...B3f">
+        <div style={{ padding: 20 }}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.gridBorder}`, borderRadius: 8, padding: 18 }}>
+            <div style={{ fontFamily: FONTS.syne, fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 14 }}>Create New Escrow</div>
+
+            {/* Description field */}
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 9, fontWeight: 700, color: C.greenDim, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>Describe the work</label>
+              <div style={{ width: '100%', fontSize: 11, padding: '8px 10px', border: `1px solid ${fieldsVisible ? C.greenBorder : C.gridBorder}`, borderRadius: 5, background: C.black, color: fieldsVisible ? C.green : '#555', fontFamily: FONTS.mono }}>
+                {fieldsVisible ? 'Logo design for my brand' : 'e.g. Logo design'}
+              </div>
+            </div>
+
+            {/* Address field */}
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 9, fontWeight: 700, color: C.greenDim, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>Freelancer Wallet Address</label>
+              <div style={{ width: '100%', fontSize: 11, padding: '8px 10px', border: `1px solid ${fieldsVisible ? C.greenBorder : C.gridBorder}`, borderRadius: 5, background: C.black, color: fieldsVisible ? C.green : '#555', fontFamily: FONTS.mono }}>
+                {fieldsVisible ? '0xA4f7...9c2E' : '0x...'}
+              </div>
+            </div>
+
+            {/* Amount + Days row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              {[['Amount (USDC)', fieldsVisible ? '50' : ''], ['Days Until Deadline', fieldsVisible ? '7' : '']].map(([label, val]) => (
+                <div key={label}>
+                  <label style={{ fontSize: 9, fontWeight: 700, color: C.greenDim, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>{label}</label>
+                  <div style={{ fontSize: 11, padding: '8px 10px', border: `1px solid ${fieldsVisible ? C.greenBorder : C.gridBorder}`, borderRadius: 5, background: C.black, color: fieldsVisible ? C.green : '#555', fontFamily: FONTS.mono }}>{val || '—'}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Fee breakdown hint */}
+            {hintVisible && (
+              <div style={{ opacity: eIn(frame - f(8), 0, 15), transform: `scale(${interpolate(frame, [f(8), f(9.5)], [0.95, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })})`, transformOrigin: 'top left', background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 6, padding: 10, marginBottom: 10 }}>
+                {[['You deposit', '50.00 USDC'], ['Freelancer receives', '49.50 USDC'], ['Clario fee (1%)', '0.50 USDC'], ['Auto-release after delivery', '3 days']].map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #0a1a0a' }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: C.greenFaint, textTransform: 'uppercase' }}>{k}</span>
+                    <span style={{ fontFamily: FONTS.mono, fontSize: 11, fontWeight: 600, color: C.green }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ width: '100%', padding: 10, fontSize: 12, fontWeight: 700, background: C.greenDark, color: C.green, border: `1px solid ${C.greenMid}`, borderRadius: 6, textAlign: 'center' }}>
+              → Lock Funds & Create Escrow
+            </div>
+          </div>
+        </div>
+      </Browser>
+
+      {/* Animated cursor moving across fields */}
+      <Cursor x={cursorX} y={cursorY} opacity={interpolate(frame, [0, f(0.5)], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={false} />
+
+      {/* Highlight ring on fee breakdown */}
+      {hintVisible && (
+        <HighlightRing x={219} y={495} w={660} h={100} opacity={interpolate(frame, [f(8.5), f(9), f(12), f(12.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      )}
+
+      <Caption text="Fill in the escrow details" opacity={interpolate(frame, [f(0.3), f(1), f(3.5), f(4)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="49.50 USDC to freelancer, 0.50 fee — transparent breakdown" opacity={interpolate(frame, [f(9), f(9.5), f(13), f(13.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 5 — APPROVE USDC + LOCK (41s–51s)
+// ─────────────────────────────────────────────
+const SceneApprove = () => {
+  const frame = useCurrentFrame();
+  const secondMM = frame >= f(5);
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="3/6 · Approving USDC" />
+      <Browser wallet="0x8CE6...B3f">
+        <div style={{ padding: 20 }}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.gridBorder}`, borderRadius: 8, padding: 18, opacity: 0.5 }}>
+            <div style={{ fontFamily: FONTS.syne, fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Create New Escrow</div>
+            <div style={{ fontSize: 11, color: C.greenFaint }}>Logo design for my brand · 0xA4f7...9c2E · 50 USDC · 7 days</div>
+          </div>
+        </div>
+      </Browser>
+      {/* First MM — approve */}
+      {!secondMM && (
+        <MMPopup amount="50.00 USDC" label="Approve USDC spending for Clario escrow" opacity={eIn(frame, 0, 15)} />
+      )}
+      {/* Cursor on first Confirm */}
+      {!secondMM && (
+        <>
+          <Cursor x={895} y={210} opacity={eIn(frame, f(0.5), 10)} clicking={frame > f(3.5)} />
+          <HighlightRing x={868} y={200} w={65} h={28} opacity={interpolate(frame, [f(1), f(1.5), f(3.5), f(4)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+        </>
+      )}
+      {/* Second MM — lock funds */}
+      {secondMM && (
+        <MMPopup amount="50.00 USDC" label="Lock funds in Clario smart contract on Arc" opacity={eIn(frame - f(5), 0, 15)} />
+      )}
+      {secondMM && (
+        <>
+          <Cursor x={895} y={210} opacity={eIn(frame - f(5), f(0.5), 10)} clicking={frame > f(8.5)} />
+          <HighlightRing x={868} y={200} w={65} h={28} opacity={interpolate(frame, [f(6), f(6.5), f(8.5), f(9)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+        </>
+      )}
+      <Caption text="First confirmation — approve USDC spending" opacity={interpolate(frame, [f(0.5), f(1), f(4), f(4.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="Second confirmation — lock the funds in the smart contract" opacity={interpolate(frame, [f(5.5), f(6), f(9), f(9.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 6 — ESCROW CREATED (51s–60s)
+// ─────────────────────────────────────────────
+const SceneCreated = () => {
+  const frame = useCurrentFrame();
+  const sc = useSpring(frame, 0);
+  const zoomScale = interpolate(frame, [f(3), f(4.5), f(7), f(8)], [1, 1.4, 1.4, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="3/6 · Escrow Created ✓" />
+      <Browser wallet="0x8CE6...B3f">
+        <StatBar total={1} active={1} completed={0} vol="50.00" />
+        <div style={{ padding: '16px 24px', transform: `scale(${sc})`, transformOrigin: 'top center' }}>
+          <EscrowCard status="active" />
+        </div>
+        <TxBar hash="0x1e3...777c6" />
+      </Browser>
+      {/* Zoom in on escrow grid */}
+      <div style={{
+        position: 'absolute', left: 100, top: 30, width: 1080,
+        transform: `scale(${zoomScale})`,
+        transformOrigin: '540px 300px',
+        pointerEvents: 'none', opacity: 0,
+      }} />
+      <HighlightRing x={205} y={258} w={660} h={84} opacity={interpolate(frame, [f(0.5), f(1), f(3), f(3.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Cursor x={535} y={300} opacity={interpolate(frame, [f(0.3), f(0.8), f(2.5), f(3)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={false} />
+      <Caption text="✓ Escrow created! 50 USDC is now locked on Arc" opacity={interpolate(frame, [f(0.5), f(1), f(3.5), f(4)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="The card shows amount, deadline, and wallet addresses" opacity={interpolate(frame, [f(4), f(4.5), f(8), f(8.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 7 — FREELANCER SWITCH CARD (60s–65s)
+// ─────────────────────────────────────────────
+const SceneSwitchFreelancer = () => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ background: C.black, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <GridBg />
+      <div style={{ opacity: eIn(frame, 0, 20), fontFamily: FONTS.mono, fontSize: 12, color: C.green, letterSpacing: 2 }}>SWITCHING TO FREELANCER</div>
+      <div style={{ opacity: eIn(frame, 10, 20), fontFamily: FONTS.syne, fontSize: 36, fontWeight: 800, color: '#fff', textAlign: 'center' }}>
+        Now let's see the<br /><span style={{ color: C.green }}>freelancer's side</span>
+      </div>
+      <div style={{ opacity: eIn(frame, 20, 20), fontSize: 14, color: C.greenDim, maxWidth: 500, textAlign: 'center', lineHeight: 1.7 }}>
+        Your friend opens Clario on their device, connects their wallet, and switches to Freelancer mode
+      </div>
+      <Caption text="Switch to a different browser — or your friend opens Clario on their device" opacity={eIn(frame, 25, 15)} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 8 — FREELANCER VIEW (65s–80s)
+// ─────────────────────────────────────────────
+const SceneFreelancer = () => {
+  const frame = useCurrentFrame();
+  const zoomScale = interpolate(frame, [f(9), f(10.5), f(14), f(15)], [1, 1.5, 1.5, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="4/6 · Freelancer View" />
+      <Browser wallet="0xA4f7...9c2E">
+        <StatBar total={1} active={1} completed={0} vol="0.00" />
+        <div style={{ padding: '16px 24px' }}>
+          <EscrowCard status="active" />
+        </div>
+      </Browser>
+      {/* Cursor pointing at Freelancer tab */}
+      <Cursor x={740} y={81} opacity={interpolate(frame, [f(0.5), f(1), f(2), f(2.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={false} />
+      <HighlightRing x={706} y={68} w={90} h={28} opacity={interpolate(frame, [f(1), f(1.5), f(2.5), f(3)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      {/* Cursor pointing at escrow card */}
+      <Cursor x={640} y={310} opacity={interpolate(frame, [f(3), f(3.5), f(7), f(7.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={false} />
+      <HighlightRing x={205} y={178} w={660} h={180} opacity={interpolate(frame, [f(3.5), f(4), f(7), f(7.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      {/* Zoom into escrow grid */}
+      <HighlightRing x={205} y={258} w={660} h={84} opacity={interpolate(frame, [f(10), f(10.5), f(14), f(14.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="Freelancer switches to 'Freelancer' tab — sees the escrow instantly" opacity={interpolate(frame, [f(1), f(1.5), f(3), f(3.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="Freelancer verifies 50 USDC is locked — BEFORE starting any work" opacity={interpolate(frame, [f(4), f(4.5), f(14), f(14.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 9 — SUBMIT DELIVERY (80s–98s)
+// ─────────────────────────────────────────────
+const SceneDeliver = () => {
+  const frame = useCurrentFrame();
+  const modalVisible = frame >= f(2);
+  const linkTyped = frame >= f(6);
+  const submitted = frame >= f(11);
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="5/6 · Submitting Delivery" />
+      <Browser wallet="0xA4f7...9c2E">
+        <StatBar total={1} active={1} completed={0} vol="0.00" />
+        <div style={{ padding: '16px 24px' }}>
+          <EscrowCard status="active" />
+        </div>
+      </Browser>
+      {/* Cursor pointing at Submit Delivery button */}
+      <Cursor x={310} y={400} opacity={interpolate(frame, [f(0.5), f(1), f(2), f(2.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={frame > f(1.8)} />
+      <HighlightRing x={222} y={388} w={138} h={28} opacity={interpolate(frame, [f(1), f(1.5), f(2), f(2.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      {/* Delivery modal */}
+      {modalVisible && !submitted && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, opacity: eIn(frame - f(2), 0, 10) }}>
+          <div style={{ background: C.nearBlack, border: '1px solid #1a3a1a', borderRadius: 10, padding: 20, width: 320, fontFamily: FONTS.dm }}>
+            <div style={{ fontFamily: FONTS.syne, fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Submit Your Delivery</div>
+            <div style={{ width: '100%', fontSize: 11, padding: '8px 10px', border: `1px solid ${C.greenBorder}`, borderRadius: 5, background: C.black, color: linkTyped ? C.green : '#555', marginBottom: 8, fontFamily: FONTS.mono }}>
+              {linkTyped ? 'https://drive.google.com/file/clario-logo-design' : 'https://drive.google.com/...'}
+            </div>
+            <div style={{ fontSize: 9, color: C.greenFaint, marginBottom: 12 }}>Share a Google Drive, Figma, GitHub or any link.</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button style={{ flex: 1, padding: 8, background: '#0d3d1a', color: C.green, border: '1px solid #166634', borderRadius: 5, fontSize: 11, fontWeight: 700 }}>Submit Delivery</button>
+              <button style={{ padding: '8px 14px', background: '#1a0000', color: '#f87171', border: '1px solid #3d0000', borderRadius: 5, fontSize: 11, fontWeight: 700 }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Cursor on modal fields */}
+      {modalVisible && !submitted && (
+        <Cursor
+          x={interpolate(frame, [f(2.5), f(3), f(9), f(10)], [640, 640, 720, 720], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
+          y={interpolate(frame, [f(2.5), f(3), f(9), f(10)], [360, 375, 435, 435], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
+          opacity={interpolate(frame, [f(2.5), f(3), f(10.5), f(11)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
+          clicking={frame > f(10.3)}
+        />
+      )}
+      <Caption text="Click 'Submit Delivery' to share the work" opacity={interpolate(frame, [f(0.5), f(1), f(2), f(2.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="A modal appears — paste a link to the completed work" opacity={interpolate(frame, [f(2.5), f(3), f(5.5), f(6)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="Link entered — stored permanently on the Arc blockchain" opacity={interpolate(frame, [f(7), f(7.5), f(14), f(14.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 10 — DELIVERED STATUS (98s–103s)
+// ─────────────────────────────────────────────
+const SceneDelivered = () => {
+  const frame = useCurrentFrame();
+  const sc = useSpring(frame, 0);
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="5/6 · Delivered" />
+      <Browser wallet="0xA4f7...9c2E">
+        <StatBar total={1} active={1} completed={0} vol="0.00" />
+        <div style={{ padding: '16px 24px', transform: `scale(${sc})`, transformOrigin: 'top center' }}>
+          <EscrowCard status="delivered" showLink />
+        </div>
+        <TxBar hash="0x9f2...a31b" />
+      </Browser>
+      <Cursor x={535} y={195} opacity={interpolate(frame, [f(0.5), f(1), f(3), f(3.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={false} />
+      <HighlightRing x={878} y={180} w={90} h={24} opacity={interpolate(frame, [f(0.5), f(1), f(3), f(3.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="Status changes to DELIVERED — the client is notified" opacity={eIn(frame, f(0.5), 15)} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 11 — BACK TO CLIENT CARD (103s–108s)
+// ─────────────────────────────────────────────
+const SceneSwitchClient = () => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ background: C.black, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <GridBg />
+      <div style={{ opacity: eIn(frame, 0, 20), fontFamily: FONTS.mono, fontSize: 12, color: C.green, letterSpacing: 2 }}>BACK TO CLIENT</div>
+      <div style={{ opacity: eIn(frame, 10, 20), fontFamily: FONTS.syne, fontSize: 36, fontWeight: 800, color: '#fff', textAlign: 'center' }}>
+        Client reviews<br /><span style={{ color: C.green }}>& releases payment</span>
+      </div>
+      <div style={{ opacity: eIn(frame, 20, 20), fontSize: 14, color: C.greenDim, textAlign: 'center', lineHeight: 1.7 }}>
+        The client opens Clario, sees the delivered status,<br />reviews the work link, and releases the funds
+      </div>
+      <Caption text="Back to the client — they see the work has been delivered" opacity={eIn(frame, 25, 15)} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 12 — CLIENT RELEASES PAYMENT (108s–125s)
+// ─────────────────────────────────────────────
+const SceneRelease = () => {
+  const frame = useCurrentFrame();
+  const mmVisible = frame >= f(7);
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="6/6 · Releasing Payment" />
+      <Browser wallet="0x8CE6...B3f">
+        <StatBar total={1} active={1} completed={0} vol="50.00" />
+        <div style={{ padding: '16px 24px' }}>
+          <EscrowCard status="delivered" showLink />
+        </div>
+      </Browser>
+      {/* Cursor on DELIVERED badge */}
+      <Cursor x={897} y={192} opacity={interpolate(frame, [f(0.5), f(1), f(2.5), f(3)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={false} />
+      <HighlightRing x={858} y={178} w={112} h={28} opacity={interpolate(frame, [f(0.5), f(1), f(2.5), f(3)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      {/* Cursor on delivery link */}
+      <Cursor x={536} y={362} opacity={interpolate(frame, [f(3.5), f(4), f(6), f(6.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={false} />
+      <HighlightRing x={205} y={348} w={660} h={28} opacity={interpolate(frame, [f(3.5), f(4), f(6), f(6.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      {/* Cursor on Release Payment button */}
+      <Cursor x={310} y={400} opacity={interpolate(frame, [f(6.5), f(7), mmVisible ? f(7.3) : f(9), mmVisible ? f(7.6) : f(9.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} clicking={frame > f(6.9)} />
+      {/* MetaMask */}
+      {mmVisible && (
+        <MMPopup amount="49.50 USDC" label="Release payment to freelancer wallet" opacity={eIn(frame - f(7), 0, 15)} />
+      )}
+      {mmVisible && (
+        <>
+          <Cursor x={895} y={210} opacity={eIn(frame - f(8), 0, 10)} clicking={frame > f(12)} />
+          <HighlightRing x={868} y={200} w={65} h={28} opacity={interpolate(frame, [f(8.5), f(9), f(12), f(12.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+        </>
+      )}
+      <Caption text="Client sees DELIVERED badge and the delivery link" opacity={interpolate(frame, [f(0.5), f(1), f(3), f(3.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="Client clicks the link, reviews the work — satisfied!" opacity={interpolate(frame, [f(3.5), f(4), f(6), f(6.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="One MetaMask confirmation — funds transfer instantly on Arc" opacity={interpolate(frame, [f(7.5), f(8), f(13), f(13.5)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 13 — COMPLETED (120s–130s)
+// ─────────────────────────────────────────────
+const SceneCompleted = () => {
+  const frame = useCurrentFrame();
+  const sc = useSpring(frame, 0);
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      <GridBg />
+      <StepBadge text="Complete ✓" />
+      <Browser wallet="0x8CE6...B3f">
+        <StatBar total={1} active={0} completed={1} vol="50.00" />
+        <div style={{ padding: '16px 24px', transform: `scale(${sc})`, transformOrigin: 'top center' }}>
+          <EscrowCard status="completed" showLink />
+        </div>
+        <TxBar hash="0x4a1...b92c" />
+      </Browser>
+      <HighlightRing x={858} y={178} w={112} h={28} opacity={interpolate(frame, [f(0.5), f(1), f(3.5), f(4)], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
+      <Caption text="✓ COMPLETED — Freelancer received 49.50 USDC. Deal closed on-chain." opacity={eIn(frame, f(0.5), 15)} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// SCENE 14 — OUTRO (130s–150s)
+// ─────────────────────────────────────────────
+const SceneOutro = () => {
+  const frame = useCurrentFrame();
+  const stats = [['100%', 'Funds locked upfront'], ['<1s', 'Arc finality'], ['3 days', 'Auto-release protection'], ['1%', 'Protocol fee only']];
+  return (
+    <AbsoluteFill style={{ background: C.black, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+      <GridBg />
+      <div style={{ opacity: eIn(frame, 0, 20), display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 50, height: 50, background: `linear-gradient(135deg,${C.greenDark},${C.greenMid})`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONTS.syne, fontSize: 24, fontWeight: 800, color: '#fff' }}>C</div>
+        <span style={{ fontFamily: FONTS.syne, fontSize: 48, fontWeight: 800, color: '#fff', letterSpacing: -1 }}>Clario</span>
+      </div>
+      <div style={{ opacity: eIn(frame, 15, 20), fontFamily: FONTS.syne, fontSize: 20, fontWeight: 700, color: C.green }}>No middleman. No scams. No waiting.</div>
+      <div style={{ opacity: eIn(frame, 25, 20), display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 600, width: '100%' }}>
+        {stats.map(([n, d], i) => (
+          <div key={n} style={{ opacity: eIn(frame, 30 + i * 8, 15), background: C.cardBg, border: `1px solid ${C.gridBorder}`, borderRadius: 10, padding: 16, textAlign: 'center' }}>
+            <div style={{ fontFamily: FONTS.syne, fontSize: 28, fontWeight: 800, color: C.green }}>{n}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.greenFaint, marginTop: 4 }}>{d}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ opacity: eIn(frame, 60, 20), fontFamily: FONTS.mono, fontSize: 12, color: '#4d8c4d' }}>Built on Arc · Powered by Circle USDC</div>
+      <div style={{ opacity: eIn(frame, 65, 20), fontSize: 13, color: C.greenFaint, fontWeight: 600 }}>Try it → clario-app.vercel.app</div>
+      <Caption text="Try Clario today — link in the article" opacity={eIn(frame, 70, 15)} />
+    </AbsoluteFill>
+  );
+};
+
+// ─────────────────────────────────────────────
+// ROOT EXPORT
+// ─────────────────────────────────────────────
+export const ClarioDemo = () => {
+  return (
+    <AbsoluteFill style={{ background: C.black }}>
+      {/* Scene 1: Intro 0–5s */}
+      <Sequence from={f(0)} durationInFrames={f(5)}><SceneIntro /></Sequence>
+      {/* Scene 2: Landing 5–13s */}
+      <Sequence from={f(5)} durationInFrames={f(8)}><SceneLanding /></Sequence>
+      {/* Scene 3: Wallet Connect 13–23s */}
+      <Sequence from={f(13)} durationInFrames={f(10)}><SceneWallet /></Sequence>
+      {/* Scene 4: Create Form 23–41s */}
+      <Sequence from={f(23)} durationInFrames={f(18)}><SceneCreate /></Sequence>
+      {/* Scene 5: Approve USDC 41–51s */}
+      <Sequence from={f(41)} durationInFrames={f(10)}><SceneApprove /></Sequence>
+      {/* Scene 6: Escrow Created 51–60s */}
+      <Sequence from={f(51)} durationInFrames={f(9)}><SceneCreated /></Sequence>
+      {/* Scene 7: Switch to Freelancer 60–65s */}
+      <Sequence from={f(60)} durationInFrames={f(5)}><SceneSwitchFreelancer /></Sequence>
+      {/* Scene 8: Freelancer View 65–80s */}
+      <Sequence from={f(65)} durationInFrames={f(15)}><SceneFreelancer /></Sequence>
+      {/* Scene 9: Submit Delivery 80–98s */}
+      <Sequence from={f(80)} durationInFrames={f(18)}><SceneDeliver /></Sequence>
+      {/* Scene 10: Delivered 98–103s */}
+      <Sequence from={f(98)} durationInFrames={f(5)}><SceneDelivered /></Sequence>
+      {/* Scene 11: Switch Back to Client 103–108s */}
+      <Sequence from={f(103)} durationInFrames={f(5)}><SceneSwitchClient /></Sequence>
+      {/* Scene 12: Release Payment 108–125s */}
+      <Sequence from={f(108)} durationInFrames={f(17)}><SceneRelease /></Sequence>
+      {/* Scene 13: Completed 125–130s */}
+      <Sequence from={f(125)} durationInFrames={f(5)}><SceneCompleted /></Sequence>
+      {/* Scene 14: Outro 130–150s */}
+      <Sequence from={f(130)} durationInFrames={f(20)}><SceneOutro /></Sequence>
+    </AbsoluteFill>
+  );
+};
+
