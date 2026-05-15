@@ -2,750 +2,569 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Clario Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Clario — Trustless Freelance Escrow on Arc</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:#000;width:1280px;height:720px;overflow:hidden;font-family:'DM Sans',sans-serif;}
-#scene{width:1280px;height:720px;position:relative;background:#000;overflow:hidden;}
-.grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(22,101,52,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(22,101,52,0.06) 1px,transparent 1px);background-size:60px 60px;opacity:0;transition:opacity 1s;}
-.browser{position:absolute;background:#111;border-radius:12px;border:1px solid #1a2a1a;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,0.8),0 0 0 1px rgba(34,197,94,0.1);transition:transform 0.9s cubic-bezier(0.4,0,0.2,1);}
-.browser-bar{background:#1a1a1a;height:38px;display:flex;align-items:center;padding:0 16px;gap:8px;border-bottom:1px solid #222;}
-.browser-dots{display:flex;gap:6px;}
-.dot{width:12px;height:12px;border-radius:50%;}
-.dot-r{background:#ff5f57;}.dot-y{background:#febc2e;}.dot-g{background:#28c840;}
-.browser-url{flex:1;margin:0 16px;background:#0a0a0a;border-radius:6px;height:24px;display:flex;align-items:center;padding:0 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#4d8c4d;}
-.app-header{background:#000;border-bottom:1px solid #0d2d0d;height:52px;display:flex;align-items:center;padding:0 24px;gap:10px;}
-.app-logo-icon{width:26px;height:26px;background:linear-gradient(135deg,#166534,#16a34a);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:#fff;}
-.app-logo-text{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;}
-.app-badge{font-family:'JetBrains Mono',monospace;font-size:8px;color:#22c55e;background:#061a06;border:1px solid #0d3d1a;padding:2px 7px;border-radius:20px;letter-spacing:1px;}
-.app-nav{margin-left:auto;display:flex;gap:8px;align-items:center;}
-.nav-btn{font-size:11px;font-weight:600;padding:5px 12px;border-radius:5px;cursor:pointer;background:transparent;color:#4d8c4d;border:1px solid #0d2d0d;}
-.nav-btn.active{background:#061a06;color:#22c55e;border-color:#0d3d1a;}
-.connect-btn-ui{font-size:11px;font-weight:700;padding:6px 16px;border-radius:5px;background:#166534;color:#22c55e;border:1px solid #16a34a;}
-.wallet-chip-ui{font-family:'JetBrains Mono',monospace;font-size:10px;color:#22c55e;background:#061a06;border:1px solid #0d3d1a;padding:5px 12px;border-radius:5px;}
-.app-hero{padding:28px 24px 20px;border-bottom:1px solid #0d2d0d;}
-.app-hero-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:8px;}
-.app-hero-title span{color:#22c55e;}
-.app-hero-sub{font-size:11px;color:#4d8c4d;line-height:1.6;max-width:400px;margin-bottom:12px;}
-.hero-pills{display:flex;gap:6px;flex-wrap:wrap;}
-.pill{font-size:9px;font-weight:600;padding:3px 10px;border-radius:20px;background:#061a06;color:#22c55e;border:1px solid #0d3d1a;}
-.personal-stats-bar{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #0d2d0d;}
-.pstat{padding:12px 18px;border-right:1px solid #0d2d0d;}
+:root{
+  --bg:#000;--bg2:#0a0a0a;
+  --green:#22c55e;--green2:#16a34a;--green3:#166534;--green4:#0d3d1a;--green5:#061a06;
+  --border:#0d2d0d;--border2:#1a3a1a;
+  --text:#f0fff0;--text2:#a0c0a0;--text3:#4d8c4d;--text4:#2a5c2a;
+  --amber:#f59e0b;--blue:#60a5fa;--red:#f87171;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+/* HEADER */
+.header{background:var(--bg);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;height:60px;gap:12px;position:sticky;top:0;z-index:100;}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--green3),var(--green2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;}
+.logo-text{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;}
+.logo-badge{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);background:var(--green5);border:1px solid var(--green4);padding:2px 8px;border-radius:20px;letter-spacing:1px;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.nav-btn{font-size:13px;font-weight:600;padding:6px 16px;border-radius:6px;cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);border:1px solid var(--border);}
+.nav-btn:hover,.nav-btn.active{background:var(--green5);color:var(--green);border-color:var(--green4);}
+.connect-btn{background:var(--green3);color:var(--green);border:1px solid var(--green2);font-size:13px;font-weight:700;padding:8px 20px;border-radius:6px;cursor:pointer;}
+.connect-btn:hover{background:var(--green2);}
+.wallet-chip{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);background:var(--green5);border:1px solid var(--green4);padding:8px 14px;border-radius:6px;}
+
+/* HERO */
+.hero{padding:48px 32px;border-bottom:1px solid var(--border);}
+.hero-title{font-family:'Syne',sans-serif;font-size:40px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:12px;letter-spacing:-1px;}
+.hero-title span{color:var(--green);}
+.hero-sub{font-size:15px;color:var(--text3);line-height:1.7;max-width:560px;font-weight:500;margin-bottom:20px;}
+.hero-pills{display:flex;gap:8px;flex-wrap:wrap;}
+.pill{font-size:11px;font-weight:600;padding:5px 14px;border-radius:20px;background:var(--green5);color:var(--green);border:1px solid var(--green4);}
+
+/* PERSONAL STATS */
+.personal-stats{display:none;background:var(--bg);border-bottom:1px solid var(--border);}
+.personal-stats-inner{display:grid;grid-template-columns:repeat(4,1fr);}
+.pstat{padding:24px 32px;border-right:1px solid var(--border);}
 .pstat:last-child{border-right:none;}
-.pstat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#22c55e;}
-.pstat-label{font-size:9px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.8px;margin-top:3px;}
-.app-tabs{display:flex;border-bottom:1px solid #0d2d0d;padding:0 24px;}
-.app-tab{font-size:11px;font-weight:700;padding:10px 14px;border:none;background:transparent;color:#2a5c2a;border-bottom:2px solid transparent;margin-bottom:-1px;}
-.app-tab.active{color:#22c55e;border-bottom-color:#22c55e;}
-.app-body{padding:20px 24px;}
-.info-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#0d2d0d;border:1px solid #0d2d0d;border-radius:8px;overflow:hidden;margin-bottom:14px;}
-.info-item{background:#060f06;padding:12px 16px;}
-.info-num{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#22c55e;}
-.info-desc{font-size:9px;font-weight:600;color:#2a5c2a;margin-top:3px;}
-.escrow-card{background:#060f06;border:1px solid #0d2d0d;border-radius:8px;padding:14px;margin-bottom:10px;}
-.escrow-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-.esc-id{font-family:'JetBrains Mono',monospace;font-size:8px;color:#2a5c2a;margin-bottom:3px;}
-.esc-desc{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;}
-.badge{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;padding:3px 8px;border-radius:20px;}
-.badge-active{background:#0a1a00;color:#22c55e;border:1px solid #0d3d1a;}
-.badge-delivered{background:#1a1000;color:#f59e0b;border:1px solid #3d2800;}
+.pstat-num{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--green);line-height:1;}
+.pstat-label{font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg);padding:0 32px;}
+.tab{font-size:13px;font-weight:700;padding:16px 20px;border:none;background:transparent;color:var(--text4);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color 0.15s;}
+.tab:hover{color:var(--text2);}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+.tab-right{margin-left:auto;}
+
+/* BODY */
+.body{padding:32px;max-width:900px;margin:0 auto;width:100%;flex:1;}
+
+/* INFO BANNER */
+.info-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;}
+.info-item{background:var(--bg2);padding:20px 24px;}
+.info-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--green);}
+.info-desc{font-size:12px;font-weight:600;color:var(--text4);margin-top:4px;line-height:1.5;}
+.section-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px;transition:border-color 0.15s;}
+.card:hover{border-color:var(--border2);}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.escrow-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4);letter-spacing:1px;margin-bottom:5px;}
+.escrow-desc{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#fff;line-height:1.2;}
+.badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:5px 12px;border-radius:20px;letter-spacing:0.5px;white-space:nowrap;}
+.badge-active{background:#0a1a00;color:var(--green);border:1px solid var(--green4);}
+.badge-delivered{background:#1a1000;color:var(--amber);border:1px solid #3d2800;}
 .badge-completed{background:#001a0a;color:#4ade80;border:1px solid #0d4a1a;}
-.badge-disputed{background:#1a0000;color:#f87171;border:1px solid #3d0000;}
-.esc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
-.esc-cell{background:#000;border:1px solid #0d2d0d;border-radius:5px;padding:7px 9px;}
-.esc-cell-label{font-size:8px;font-weight:700;color:#2a5c2a;text-transform:uppercase;letter-spacing:0.5px;}
-.esc-cell-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#c8ffc8;margin-top:2px;}
-.esc-addr{font-family:'JetBrains Mono',monospace;font-size:8px;color:#1a4a1a;margin-bottom:8px;padding:5px 8px;background:#000;border-radius:4px;border:1px solid #0a1a0a;display:flex;justify-content:space-between;}
-.esc-actions{display:flex;gap:6px;}
-.btn-release{font-size:10px;font-weight:700;padding:7px 14px;border-radius:5px;background:#0d3d1a;color:#22c55e;border:1px solid #166534;}
-.btn-dispute{font-size:10px;font-weight:700;padding:7px 14px;border-radius:5px;background:#1a0000;color:#f87171;border:1px solid #3d0000;}
-.btn-deliver{font-size:10px;font-weight:700;padding:7px 14px;border-radius:5px;background:#0d3d1a;color:#22c55e;border:1px solid #166534;}
-.form-card{background:#060f06;border:1px solid #0d2d0d;border-radius:8px;padding:18px;}
-.form-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;margin-bottom:14px;}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.form-full{margin-bottom:10px;}
-.flabel{font-size:9px;font-weight:700;color:#4d8c4d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;}
-.finput-ui{width:100%;font-size:11px;padding:8px 10px;border:1px solid #0d2d0d;border-radius:5px;background:#000;color:#f0fff0;}
-.finput-ui.filled{border-color:#0d3d1a;color:#22c55e;}
-.fhint{background:#061a06;border:1px solid #0d3d1a;border-radius:6px;padding:10px;margin:10px 0;}
-.fhint-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0a1a0a;}
-.fhint-row:last-child{border-bottom:none;}
-.fhint-key{font-size:9px;font-weight:700;color:#2a5c2a;text-transform:uppercase;}
-.fhint-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#22c55e;}
-.btn-submit-ui{width:100%;padding:10px;font-size:12px;font-weight:700;background:#166534;color:#22c55e;border:1px solid #16a34a;border-radius:6px;margin-top:8px;}
-.mm-popup{position:absolute;background:#1a1a1a;border:1px solid #333;border-radius:12px;width:220px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,0.8);font-size:11px;z-index:100;}
-.mm-logo{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
-.mm-fox{font-size:20px;}
-.mm-title{font-size:13px;font-weight:700;color:#fff;}
-.mm-network{background:#0a1a0a;border:1px solid #0d3d1a;border-radius:6px;padding:8px 10px;margin-bottom:10px;}
-.mm-network-name{font-size:10px;font-weight:700;color:#22c55e;}
-.mm-network-sub{font-size:9px;color:#4d8c4d;margin-top:2px;}
-.mm-amount{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#fff;text-align:center;margin:10px 0;}
-.mm-label{font-size:9px;color:#666;text-align:center;margin-bottom:12px;}
-.mm-btns{display:flex;gap:6px;}
-.mm-reject{flex:1;padding:7px;border-radius:6px;background:#1a1a1a;border:1px solid #333;color:#999;font-size:10px;font-weight:700;}
-.mm-confirm{flex:1;padding:7px;border-radius:6px;background:#166534;border:none;color:#22c55e;font-size:10px;font-weight:700;}
-.delivery-modal{position:absolute;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:50;}
-.delivery-modal-inner{background:#0a0a0a;border:1px solid #1a3a1a;border-radius:10px;padding:20px;width:280px;}
-.delivery-modal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;margin-bottom:12px;}
-.delivery-input{width:100%;font-size:11px;padding:8px 10px;border:1px solid #0d3d1a;border-radius:5px;background:#000;color:#22c55e;margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
-.delivery-sub-text{font-size:9px;color:#2a5c2a;margin-bottom:12px;}
-.delivery-btns{display:flex;gap:6px;}
-.delivery-submit{flex:1;padding:8px;background:#0d3d1a;color:#22c55e;border:1px solid #166634;border-radius:5px;font-size:11px;font-weight:700;}
-.delivery-cancel{padding:8px 14px;background:#1a0000;color:#f87171;border:1px solid #3d0000;border-radius:5px;font-size:11px;font-weight:700;}
-.tx-bar-ui{background:#061a06;border:1px solid #0d3d1a;border-radius:6px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;color:#22c55e;margin-top:10px;}
-.cursor{position:absolute;z-index:9000;pointer-events:none;width:22px;height:22px;border-radius:50%;background:rgba(34,197,94,0.85);box-shadow:0 0 0 3px rgba(34,197,94,0.25),0 0 18px rgba(34,197,94,0.5);transform:translate(-50%,-50%);opacity:0;transition:top 0.55s cubic-bezier(0.4,0,0.2,1),left 0.55s cubic-bezier(0.4,0,0.2,1),opacity 0.3s,transform 0.15s;}
-.cursor.click{transform:translate(-50%,-50%) scale(0.55);}
-.highlight-ring{position:absolute;z-index:8000;pointer-events:none;border:2px solid #22c55e;border-radius:8px;box-shadow:0 0 24px rgba(34,197,94,0.35);opacity:0;transition:opacity 0.3s,left 0.4s ease,top 0.4s ease,width 0.4s ease,height 0.4s ease;}
-.caption{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);z-index:9000;background:rgba(0,0,0,0.88);border:1px solid #0d3d1a;border-radius:8px;padding:10px 28px;font-size:14px;font-weight:600;color:#22c55e;font-family:'DM Sans',sans-serif;white-space:nowrap;opacity:0;transition:opacity 0.4s;backdrop-filter:blur(10px);}
-.progress-bar{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,#22c55e,#16a34a);transition:width 0.1s linear;z-index:9999;}
-.fade-overlay{position:absolute;inset:0;background:#000;z-index:8500;pointer-events:none;opacity:0;transition:opacity 0.5s;}
-.step-indicator{position:absolute;top:20px;right:20px;z-index:9000;font-family:'JetBrains Mono',monospace;font-size:10px;color:#2a5c2a;background:rgba(0,0,0,0.7);border:1px solid #0d2d0d;border-radius:6px;padding:6px 12px;}
-.play-screen{position:absolute;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;}
-.play-btn{width:80px;height:80px;border-radius:50%;background:#0d3d1a;border:2px solid #22c55e;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:28px;color:#22c55e;box-shadow:0 0 40px rgba(34,197,94,0.3);transition:all 0.2s;}
-.play-btn:hover{background:#166534;transform:scale(1.05);}
-.play-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#fff;}
-.play-sub{font-size:14px;color:#4d8c4d;}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.badge-disputed{background:#1a0000;color:var(--red);border:1px solid #3d0000;}
+.badge-refunded{background:#0a0a1a;color:var(--blue);border:1px solid #0a1a3d;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.cell{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.cell-label{font-size:10px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.6px;}
+.cell-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#c8ffc8;margin-top:5px;}
+.addr-row{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4);margin-bottom:14px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.delivery-box{background:var(--green5);border:1px solid var(--green4);border-radius:8px;padding:12px 14px;margin-bottom:14px;}
+.delivery-label{font-size:10px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;}
+.delivery-link a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);text-decoration:underline;word-break:break-all;}
+.card-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;border-radius:8px;cursor:pointer;transition:all 0.15s;border:none;letter-spacing:0.2px;}
+.btn-green{background:var(--green4);color:var(--green);border:1px solid var(--green3);}
+.btn-green:hover{background:var(--green3);}
+.btn-red{background:#1a0000;color:var(--red);border:1px solid #3d0000;}
+.btn-red:hover{background:#2a0000;}
+
+/* FORM */
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px;}
+.form-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;margin-bottom:22px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-group.full{grid-column:1/-1;}
+.flabel{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:7px;}
+.finput{width:100%;font-size:14px;font-family:'DM Sans',sans-serif;padding:11px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s;}
+.finput:focus{border-color:var(--green3);}
+.finput::placeholder{color:var(--text4);}
+.fhint{background:var(--green5);border:1px solid var(--green4);border-radius:8px;padding:16px;margin-top:16px;}
+.fhint-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);}
+.fhint-row:last-child{border-bottom:none;padding-top:10px;margin-top:4px;}
+.fhint-key{font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.5px;}
+.fhint-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--green);}
+.approve-notice{background:#1a1000;border:1px solid #3d2800;border-radius:8px;padding:12px 16px;font-size:12px;color:var(--amber);font-weight:600;margin-top:16px;}
+.btn-submit{width:100%;padding:14px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;background:var(--green3);color:var(--green);border:1px solid var(--green2);border-radius:8px;cursor:pointer;letter-spacing:0.3px;margin-top:16px;}
+.btn-submit:hover{background:var(--green2);}
+.btn-submit:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* EMPTY */
+.empty{text-align:center;padding:80px 20px;}
+.empty-icon{font-size:40px;margin-bottom:16px;}
+.empty-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--green4);margin-bottom:8px;}
+.empty-sub{font-size:14px;color:var(--text4);font-weight:500;}
+
+/* TX */
+.tx-bar{background:var(--green5);border:1px solid var(--green4);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);word-break:break-all;margin-top:16px;}
+.tx-bar a{color:#4dbb6e;}
+.loading{text-align:center;padding:50px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:100%;max-width:440px;}
+.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:18px;}
+.modal-actions{display:flex;gap:10px;margin-top:18px;}
+
+/* FOOTER */
+.footer{background:var(--green5);border-top:1px solid var(--border);padding:14px 32px;display:none;flex-direction:row;align-items:center;gap:24px;flex-wrap:wrap;}
+.footer-item{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4);}
+.footer-item span{color:var(--green);}
+.footer-brand{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4);margin-left:auto;}
 </style>
 </head>
 <body>
-<div id="scene">
-  <div class="grid-bg" id="grid-bg"></div>
-  <div class="fade-overlay" id="fade"></div>
-  <div class="progress-bar" id="progress" style="width:0%"></div>
-  <div class="step-indicator" id="step-ind" style="opacity:0"></div>
-  <div class="caption" id="caption"></div>
-  <div class="cursor" id="cursor"></div>
-  <div class="highlight-ring" id="highlight"></div>
 
-  <div class="play-screen" id="play-screen">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="width:40px;height:40px;background:linear-gradient(135deg,#166534,#16a34a);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;">C</div>
-      <span style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">Clario</span>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#22c55e;background:#061a06;border:1px solid #0d3d1a;padding:3px 8px;border-radius:20px;">ARC TESTNET</span>
+<div class="header">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="logo-icon">C</div>
+    <span class="logo-text">Clario</span>
+    <span class="logo-badge">ARC TESTNET</span>
+  </div>
+  <div class="header-right">
+    <button class="nav-btn active" onclick="setRole('client')" id="role-client">Client</button>
+    <button class="nav-btn" onclick="setRole('freelancer')" id="role-freelancer">Freelancer</button>
+    <div id="wallet-area">
+      <button class="connect-btn" onclick="connectWallet()">Connect Wallet</button>
     </div>
-    <div class="play-title">How Clario Works</div>
-    <div class="play-sub">Trustless Freelance Escrow on Arc &middot; 2:30 min demo</div>
-    <div style="display:flex;align-items:center;gap:10px;background:#060f06;border:1px solid #0d3d1a;border-radius:8px;padding:10px 20px;">
-      <span style="font-size:13px;">&#128266;</span>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#4d8c4d;">Click &amp; zoom sound effects included</span>
-      <span style="font-size:9px;color:#22c55e;background:#0d3d1a;padding:2px 8px;border-radius:10px;">BUILT-IN</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-title">Trustless payments for<br><span>freelancers & clients.</span></div>
+  <div class="hero-sub">Clario escrows your USDC on Arc. Clients can't ghost. Freelancers can't be scammed. Disputes settled on-chain. Built on Circle's Arc network.</div>
+  <div class="hero-pills">
+    <span class="pill">✓ USDC Escrow</span>
+    <span class="pill">✓ Dispute Resolution</span>
+    <span class="pill">✓ Auto-Release in 3 days</span>
+    <span class="pill">✓ 1% Protocol Fee</span>
+    <span class="pill">✓ Sub-second Finality</span>
+  </div>
+</div>
+
+<!-- PERSONAL STATS — shows when wallet connected -->
+<div class="personal-stats" id="personal-stats">
+  <div class="personal-stats-inner">
+    <div class="pstat"><div class="pstat-num" id="p-total">0</div><div class="pstat-label">Your Escrows</div></div>
+    <div class="pstat"><div class="pstat-num" id="p-active">0</div><div class="pstat-label">Active</div></div>
+    <div class="pstat"><div class="pstat-num" id="p-completed">0</div><div class="pstat-label">Completed</div></div>
+    <div class="pstat"><div class="pstat-num" id="p-volume">0</div><div class="pstat-label">USDC Volume</div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('list')" id="tab-list">All Escrows</button>
+  <button class="tab" onclick="switchTab('create')" id="tab-create">+ New Escrow</button>
+  <button class="tab" onclick="switchTab('arbitrator')" id="tab-arbitrator" style="display:none;">⚖ Arbitrator</button>
+  <button class="tab tab-right" onclick="loadEscrows()" id="tab-refresh" style="display:none;">↻ Refresh</button>
+</div>
+
+<div class="body">
+
+  <!-- LIST VIEW -->
+  <div id="view-list">
+    <div class="info-banner">
+      <div class="info-item"><div class="info-num">100%</div><div class="info-desc">Funds locked before work begins</div></div>
+      <div class="info-item"><div class="info-num">3 days</div><div class="info-desc">Auto-release if client goes silent</div></div>
+      <div class="info-item"><div class="info-num">1%</div><div class="info-desc">Protocol fee on settled escrows</div></div>
     </div>
-    <div class="play-btn" onclick="startDemo()">&#9654;</div>
-    <div style="font-size:12px;color:#2a5c2a;font-family:'JetBrains Mono',monospace;">Click to play &middot; Best in fullscreen</div>
+    <div class="section-title" id="list-title">All Escrows</div>
+    <div class="empty" id="empty-state">
+      <div class="empty-icon">◈</div>
+      <div class="empty-title">No escrows yet</div>
+      <div class="empty-sub">Connect your wallet to get started</div>
+    </div>
+    <div id="escrow-list"></div>
   </div>
 
-  <div id="scene-content" style="position:absolute;inset:0;opacity:0;transition:opacity 0.6s;"></div>
+  <!-- CREATE VIEW -->
+  <div id="view-create" style="display:none;">
+    <div class="form-card">
+      <div class="form-title">Create New Escrow</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="flabel">Describe the work</label>
+          <input class="finput" type="text" id="f-desc" placeholder="e.g. Logo design for Acme Corp"/>
+        </div>
+        <div class="form-group full">
+          <label class="flabel">Freelancer Wallet Address</label>
+          <input class="finput" type="text" id="f-freelancer" placeholder="0x..."/>
+        </div>
+        <div class="form-group">
+          <label class="flabel">Amount (USDC)</label>
+          <input class="finput" type="number" id="f-amount" placeholder="50" oninput="updateHint()"/>
+        </div>
+        <div class="form-group">
+          <label class="flabel">Days Until Deadline</label>
+          <input class="finput" type="number" id="f-days" placeholder="7"/>
+        </div>
+      </div>
+      <div id="form-hint" style="display:none;" class="fhint">
+        <div class="fhint-row"><span class="fhint-key">You deposit</span><span class="fhint-val" id="fh-deposit">—</span></div>
+        <div class="fhint-row"><span class="fhint-key">Freelancer receives</span><span class="fhint-val" id="fh-recv">—</span></div>
+        <div class="fhint-row"><span class="fhint-key">Clario fee (1%)</span><span class="fhint-val" id="fh-fee">—</span></div>
+        <div class="fhint-row"><span class="fhint-key">Auto-release after delivery</span><span class="fhint-val">3 days</span></div>
+      </div>
+      <div class="approve-notice">⚠️ Two MetaMask confirmations — first to approve USDC, second to create the escrow.</div>
+      <button class="btn-submit" id="btn-create" onclick="createEscrow()">→ Lock Funds & Create Escrow</button>
+    </div>
+  </div>
+
+  <!-- ARBITRATOR VIEW -->
+  <div id="view-arbitrator" style="display:none;">
+    <div style="background:#1a0000;border:1px solid #3d0000;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#f87171;font-weight:600;">⚖ Arbitrator Panel — Only visible to you. Resolve disputed escrows below.</div>
+    <div class="section-title">Disputed Escrows</div>
+    <div id="arbitrator-list"></div>
+  </div>
+
+  <div id="tx-bar" style="display:none;"></div>
+</div>
+
+<!-- FOOTER — platform stats -->
+<div class="footer" id="platform-footer">
+  <span class="footer-item">◈ Clario Network</span>
+  <span class="footer-item">Total: <span id="s-total">—</span></span>
+  <span class="footer-item">Active: <span id="s-active">—</span></span>
+  <span class="footer-item">Completed: <span id="s-completed">—</span></span>
+  <span class="footer-item">Disputed: <span id="s-disputed">—</span></span>
+  <span class="footer-brand">Built on Arc · Powered by Circle USDC</span>
+</div>
+
+<!-- DELIVERY MODAL -->
+<div class="modal-overlay" id="delivery-modal" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Submit Your Delivery</div>
+    <div>
+      <label class="flabel">Link to your work</label>
+      <input class="finput" type="text" id="delivery-link-input" placeholder="https://drive.google.com/..."/>
+    </div>
+    <div style="font-size:12px;color:var(--text4);margin-top:8px;">Share a Google Drive, Figma, GitHub or any link to your completed work.</div>
+    <div class="modal-actions">
+      <button class="btn btn-green" style="flex:1;" onclick="submitDelivery()">Submit Delivery</button>
+      <button class="btn btn-red" onclick="closeModal('delivery-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISPUTE MODAL -->
+<div class="modal-overlay" id="dispute-modal" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Raise a Dispute</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.7;">A Clario arbitrator will review both sides and decide the outcome. This cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="btn btn-red" style="flex:1;" onclick="raiseDispute()">Confirm — Raise Dispute</button>
+      <button class="btn btn-green" onclick="closeModal('dispute-modal')">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script>
-// =============================================
-// SOUND ENGINE — Web Audio API, zero files
-// =============================================
-var SFX = (function(){
-  var _c = null;
-  function ctx(){ if(!_c) _c = new(window.AudioContext||window.webkitAudioContext)(); return _c; }
+const CONTRACT="0xB1628a2b7536950833AC18681814dBD7466d7B36";
+const USDC_ADDR="0x3600000000000000000000000000000000000000";
+const ARBITRATOR="0x8ce69aef566ce2755672cc27739df4d43a0a6b3f";
+const USDC_DECIMALS=6;
+const ABI=[
+  "function createEscrow(address,uint256,uint256,string) external",
+  "function submitDelivery(uint256,string) external",
+  "function releasePayment(uint256) external",
+  "function autoRelease(uint256) external",
+  "function raiseDispute(uint256) external",
+  "function resolveDispute(uint256,bool) external",
+  "function refund(uint256) external",
+  "function getEscrow(uint256) external view returns (tuple(uint256 id,address client,address freelancer,uint256 amount,uint256 deadline,uint256 autoReleaseTime,uint8 status,string description,string deliveryLink))",
+  "function escrowCount() external view returns (uint256)"
+];
+const USDC_ABI=[
+  "function approve(address,uint256) external returns (bool)",
+  "function allowance(address,address) external view returns (uint256)"
+];
+const STATUS=['Active','Delivered','Completed','Disputed','Refunded'];
+const BADGE=['badge-active','badge-delivered','badge-completed','badge-disputed','badge-refunded'];
+let wallet=null,contract=null,usdc=null,role='client',escrows=[],activeId=null;
 
-  function click(){
-    try{
-      var c=ctx(),o=c.createOscillator(),g=c.createGain();
-      o.connect(g);g.connect(c.destination);o.type='sine';
-      o.frequency.setValueAtTime(900,c.currentTime);
-      o.frequency.exponentialRampToValueAtTime(300,c.currentTime+0.09);
-      g.gain.setValueAtTime(0.15,c.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.12);
-      o.start();o.stop(c.currentTime+0.12);
-    }catch(e){}
+function setRole(r){
+  role=r;
+  document.getElementById('role-client').className='nav-btn'+(r==='client'?' active':'');
+  document.getElementById('role-freelancer').className='nav-btn'+(r==='freelancer'?' active':'');
+  document.getElementById('list-title').textContent=r==='client'?'Your Escrows as Client':'Your Escrows as Freelancer';
+  renderEscrows();
+}
+
+function switchTab(t){
+  ['list','create','arbitrator'].forEach(v=>{
+    document.getElementById('view-'+v).style.display=v===t?'block':'none';
+    const tab=document.getElementById('tab-'+v);
+    if(tab) tab.className='tab'+(v===t?' active':'');
+  });
+  if(t==='arbitrator') renderArbitrator();
+}
+
+function updateHint(){
+  const a=parseFloat(document.getElementById('f-amount').value);
+  const h=document.getElementById('form-hint');
+  if(a>0){
+    h.style.display='block';
+    const fee=(a*0.01).toFixed(2);
+    document.getElementById('fh-deposit').textContent=a.toFixed(2)+' USDC';
+    document.getElementById('fh-recv').textContent=(a-parseFloat(fee)).toFixed(2)+' USDC';
+    document.getElementById('fh-fee').textContent=fee+' USDC';
+  } else { h.style.display='none'; }
+}
+
+function closeModal(id){ document.getElementById(id).style.display='none'; activeId=null; }
+
+function showTx(hash){
+  const el=document.getElementById('tx-bar');
+  el.style.display='block';
+  el.innerHTML='// tx confirmed on Arc → <a href="https://testnet.arcscan.app/tx/'+hash+'" target="_blank">'+hash.slice(0,24)+'...'+hash.slice(-8)+'</a>';
+}
+
+async function connectWallet(){
+  if(!window.ethereum) return alert("Install MetaMask to continue");
+  try{
+    const provider=new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts",[]);
+    const signer=await provider.getSigner();
+    wallet=await signer.getAddress();
+    contract=new ethers.Contract(CONTRACT,ABI,signer);
+    usdc=new ethers.Contract(USDC_ADDR,USDC_ABI,signer);
+    document.getElementById('wallet-area').innerHTML='<div class="wallet-chip">'+wallet.slice(0,6)+'...'+wallet.slice(-4)+'</div>';
+    document.getElementById('tab-refresh').style.display='block';
+    if(wallet.toLowerCase()===ARBITRATOR){
+      document.getElementById('tab-arbitrator').style.display='block';
+    }
+    await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
+}
+
+async function loadEscrows(){
+  if(!contract) return;
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('escrow-list').innerHTML='<div class="loading">// fetching escrows from Arc...</div>';
+  try{
+    const count=Number(await contract.escrowCount());
+    escrows=[];
+    for(let i=count;i>=1;i--){
+      try{
+        const e=await contract.getEscrow(i);
+        escrows.push({
+          id:Number(e.id),
+          client:e.client,
+          freelancer:e.freelancer,
+          amount:Number(ethers.formatUnits(e.amount,USDC_DECIMALS)),
+          deadline:new Date(Number(e.deadline)*1000).toLocaleDateString(),
+          autoReleaseTime:Number(e.autoReleaseTime),
+          status:Number(e.status),
+          description:e.description,
+          deliveryLink:e.deliveryLink
+        });
+      }catch(err){ console.warn(err); }
+    }
+    renderEscrows();
+    updateStats();
+  }catch(e){
+    document.getElementById('escrow-list').innerHTML='<div class="empty"><div class="empty-title">Error loading</div><div class="empty-sub">'+e.message+'</div></div>';
   }
+}
 
-  function zoomIn(){
-    try{
-      var c=ctx(),o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();
-      o.connect(f);f.connect(g);g.connect(c.destination);
-      o.type='sawtooth';f.type='lowpass';
-      f.frequency.setValueAtTime(400,c.currentTime);
-      f.frequency.exponentialRampToValueAtTime(2200,c.currentTime+0.5);
-      o.frequency.setValueAtTime(80,c.currentTime);
-      o.frequency.exponentialRampToValueAtTime(200,c.currentTime+0.5);
-      g.gain.setValueAtTime(0.0001,c.currentTime);
-      g.gain.linearRampToValueAtTime(0.09,c.currentTime+0.15);
-      g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.55);
-      o.start();o.stop(c.currentTime+0.6);
-    }catch(e){}
+function updateStats(){
+  // Platform stats in footer
+  document.getElementById('s-total').textContent=escrows.length;
+  document.getElementById('s-active').textContent=escrows.filter(e=>e.status===0||e.status===1).length;
+  document.getElementById('s-completed').textContent=escrows.filter(e=>e.status===2).length;
+  document.getElementById('s-disputed').textContent=escrows.filter(e=>e.status===3).length;
+  document.getElementById('platform-footer').style.display='flex';
+  // Personal stats
+  if(wallet){
+    const mine=escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase()||e.freelancer.toLowerCase()===wallet.toLowerCase());
+    const vol=mine.reduce((a,e)=>a+e.amount,0);
+    document.getElementById('p-total').textContent=mine.length;
+    document.getElementById('p-active').textContent=mine.filter(e=>e.status===0||e.status===1).length;
+    document.getElementById('p-completed').textContent=mine.filter(e=>e.status===2).length;
+    document.getElementById('p-volume').textContent=vol.toFixed(2)+' USDC';
+    document.getElementById('personal-stats').style.display='block';
   }
+}
 
-  function zoomOut(){
-    try{
-      var c=ctx(),o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();
-      o.connect(f);f.connect(g);g.connect(c.destination);
-      o.type='sawtooth';f.type='lowpass';
-      f.frequency.setValueAtTime(2200,c.currentTime);
-      f.frequency.exponentialRampToValueAtTime(300,c.currentTime+0.5);
-      o.frequency.setValueAtTime(200,c.currentTime);
-      o.frequency.exponentialRampToValueAtTime(60,c.currentTime+0.5);
-      g.gain.setValueAtTime(0.0001,c.currentTime);
-      g.gain.linearRampToValueAtTime(0.08,c.currentTime+0.1);
-      g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.55);
-      o.start();o.stop(c.currentTime+0.6);
-    }catch(e){}
+function renderEscrows(){
+  const el=document.getElementById('escrow-list');
+  let list=escrows;
+  if(wallet){
+    list=role==='client'
+      ? escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase())
+      : escrows.filter(e=>e.freelancer.toLowerCase()===wallet.toLowerCase());
   }
-
-  function success(){
-    try{
-      var c=ctx();
-      [523,659,784].forEach(function(hz,i){
-        var o=c.createOscillator(),g=c.createGain();
-        o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=hz;
-        var t=c.currentTime+i*0.11;
-        g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.28);
-        o.start(t);o.stop(t+0.3);
-      });
-    }catch(e){}
+  if(!list.length){
+    el.innerHTML='';
+    const em=document.getElementById('empty-state');
+    em.style.display='block';
+    em.innerHTML='<div class="empty-icon">◈</div><div class="empty-title">'+(wallet?'No escrows found':'Connect your wallet')+'</div><div class="empty-sub">'+(wallet?'Create your first escrow to get started':'Connect wallet to view your escrows')+'</div>';
+    return;
   }
-
-  return {boot:ctx, click:click, zoomIn:zoomIn, zoomOut:zoomOut, success:success};
-})();
-
-// =============================================
-// LAYOUT
-// =============================================
-var BX=100,BY=30,BW=1080,BBAR=38;
-function contentTop(){return BY+BBAR;}
-
-// =============================================
-// TIMELINE
-// =============================================
-var timeline=[],startTime=null,totalDuration=150000;
-function addScene(t,fn){timeline.push({time:t,fn:fn,ran:false});}
-
-function startDemo(){
-  SFX.boot();
-  document.getElementById('play-screen').style.display='none';
-  document.getElementById('grid-bg').style.opacity='1';
-  document.getElementById('step-ind').style.opacity='1';
-  document.getElementById('scene-content').style.opacity='1';
-  startTime=performance.now();
-  requestAnimationFrame(tick);
+  document.getElementById('empty-state').style.display='none';
+  el.innerHTML=list.map(e=>{
+    const isC=wallet&&e.client.toLowerCase()===wallet.toLowerCase();
+    const isF=wallet&&e.freelancer.toLowerCase()===wallet.toLowerCase();
+    const fee=(e.amount*0.01).toFixed(2);
+    const recv=(e.amount-parseFloat(fee)).toFixed(2);
+    const canAuto=e.status===1&&Date.now()/1000>=e.autoReleaseTime&&e.autoReleaseTime>0;
+    return `<div class="card">
+      <div class="card-header">
+        <div>
+          <div class="escrow-id">ESC-${String(e.id).padStart(4,'0')} · ${e.deadline}</div>
+          <div class="escrow-desc">${e.description}</div>
+        </div>
+        <span class="badge ${BADGE[e.status]}">${STATUS[e.status]}</span>
+      </div>
+      <div class="grid3">
+        <div class="cell"><div class="cell-label">Amount</div><div class="cell-val">${e.amount.toFixed(2)} USDC</div></div>
+        <div class="cell"><div class="cell-label">Freelancer gets</div><div class="cell-val">${recv} USDC</div></div>
+        <div class="cell"><div class="cell-label">Deadline</div><div class="cell-val" style="font-size:11px;">${e.deadline}</div></div>
+      </div>
+      <div class="addr-row">
+        <span>Client: ${e.client.slice(0,10)}...${e.client.slice(-6)}</span>
+        <span>Freelancer: ${e.freelancer.slice(0,10)}...${e.freelancer.slice(-6)}</span>
+      </div>
+      ${e.deliveryLink?`<div class="delivery-box"><div class="delivery-label">Delivery submitted</div><div class="delivery-link"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:''}
+      <div class="card-actions">
+        ${e.status===0&&isF?`<button class="btn btn-green" onclick="openDelivery(${e.id})">→ Submit Delivery</button>`:''}
+        ${e.status===1&&isC?`<button class="btn btn-green" onclick="releasePayment(${e.id})">✓ Release Payment</button>`:''}
+        ${canAuto?`<button class="btn btn-green" onclick="autoRelease(${e.id})">⏱ Auto Release</button>`:''}
+        ${(e.status===0||e.status===1)&&(isC||isF)?`<button class="btn btn-red" onclick="openDispute(${e.id})">⚑ Raise Dispute</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function tick(){
-  var e=performance.now()-startTime;
-  document.getElementById('progress').style.width=Math.min(e/totalDuration*100,100)+'%';
-  for(var i=0;i<timeline.length;i++){
-    if(!timeline[i].ran&&e>=timeline[i].time){timeline[i].ran=true;timeline[i].fn();}
+function renderArbitrator(){
+  const el=document.getElementById('arbitrator-list');
+  const disputed=escrows.filter(e=>e.status===3);
+  if(!disputed.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">⚖</div><div class="empty-title">No disputes</div><div class="empty-sub">All clear — no active disputes</div></div>';
+    return;
   }
-  if(e<totalDuration) requestAnimationFrame(tick);
+  el.innerHTML=disputed.map(e=>`
+    <div class="card" style="border-color:#3d0000;">
+      <div class="card-header">
+        <div>
+          <div class="escrow-id">ESC-${String(e.id).padStart(4,'0')}</div>
+          <div class="escrow-desc">${e.description}</div>
+        </div>
+        <span class="badge badge-disputed">DISPUTED</span>
+      </div>
+      <div class="grid3">
+        <div class="cell"><div class="cell-label">Amount</div><div class="cell-val">${e.amount.toFixed(2)} USDC</div></div>
+        <div class="cell"><div class="cell-label">Client</div><div class="cell-val" style="font-size:10px;">${e.client.slice(0,10)}...${e.client.slice(-4)}</div></div>
+        <div class="cell"><div class="cell-label">Freelancer</div><div class="cell-val" style="font-size:10px;">${e.freelancer.slice(0,10)}...${e.freelancer.slice(-4)}</div></div>
+      </div>
+      ${e.deliveryLink?`<div class="delivery-box"><div class="delivery-label">Freelancer delivery</div><div class="delivery-link"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:'<div style="font-size:12px;color:var(--text4);margin-bottom:12px;">No delivery submitted</div>'}
+      <div class="card-actions">
+        <button class="btn btn-green" onclick="resolveDispute(${e.id},true)">✓ Favor Freelancer</button>
+        <button class="btn btn-red" onclick="resolveDispute(${e.id},false)">✗ Favor Client — Refund</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-// =============================================
-// HELPERS
-// =============================================
-function setContent(h){document.getElementById('scene-content').innerHTML=h;}
-
-function showCaption(txt,dur){
-  dur=dur||3500;
-  var c=document.getElementById('caption');
-  c.textContent=txt;c.style.opacity='1';
-  setTimeout(function(){c.style.opacity='0';},dur-500);
+async function createEscrow(){
+  if(!contract) return alert("Connect wallet first");
+  const desc=document.getElementById('f-desc').value.trim();
+  const fl=document.getElementById('f-freelancer').value.trim();
+  const amt=document.getElementById('f-amount').value.trim();
+  const days=document.getElementById('f-days').value.trim();
+  if(!desc||!fl||!amt||!days) return alert("All fields are required");
+  const btn=document.getElementById('btn-create');
+  btn.disabled=true; btn.textContent='// Approving USDC...';
+  try{
+    const amount=ethers.parseUnits(amt,USDC_DECIMALS);
+    const allowance=await usdc.allowance(wallet,CONTRACT);
+    if(allowance<amount){ const tx=await usdc.approve(CONTRACT,amount); await tx.wait(); }
+    btn.textContent='// Creating escrow on Arc...';
+    const tx=await contract.createEscrow(fl,amount,Number(days),desc);
+    showTx(tx.hash); await tx.wait();
+    document.getElementById('f-desc').value='';
+    document.getElementById('f-freelancer').value='';
+    document.getElementById('f-amount').value='';
+    document.getElementById('f-days').value='';
+    document.getElementById('form-hint').style.display='none';
+    switchTab('list');
+    await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
+  btn.disabled=false; btn.textContent='→ Lock Funds & Create Escrow';
 }
 
-function setStep(t){document.getElementById('step-ind').textContent=t;}
+function openDelivery(id){ activeId=id; document.getElementById('delivery-modal').style.display='flex'; }
+function openDispute(id){ activeId=id; document.getElementById('dispute-modal').style.display='flex'; }
 
-function fadeTo(cb,dur){
-  dur=dur||500;
-  var f=document.getElementById('fade');
-  f.style.opacity='1';
-  setTimeout(function(){if(cb)cb();setTimeout(function(){f.style.opacity='0';},80);},dur);
+async function submitDelivery(){
+  const link=document.getElementById('delivery-link-input').value.trim();
+  if(!link) return alert("Enter a delivery link");
+  if(!contract) return alert("Wallet not connected. Please reconnect.");
+  const id=activeId;
+  closeModal('delivery-modal');
+  try{
+    const tx=await contract.submitDelivery(id,link);
+    showTx(tx.hash); await tx.wait(); await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
 }
 
-function moveCursor(pt,cb,delay){
-  delay=delay===undefined?650:delay;
-  var c=document.getElementById('cursor');
-  c.style.opacity='1';c.style.left=pt.x+'px';c.style.top=pt.y+'px';
-  if(cb) setTimeout(cb,delay);
+async function releasePayment(id){
+  if(!contract) return alert("Wallet not connected. Please reconnect.");
+  try{
+    const tx=await contract.releasePayment(id);
+    showTx(tx.hash); await tx.wait(); await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
 }
 
-function clickCursor(pt,cb){
-  var c=document.getElementById('cursor');
-  c.style.opacity='1';c.style.left=pt.x+'px';c.style.top=pt.y+'px';
-  setTimeout(function(){
-    SFX.click();
-    c.classList.add('click');
-    setTimeout(function(){c.classList.remove('click');if(cb)cb();},200);
-  },450);
+async function autoRelease(id){
+  if(!contract) return alert("Wallet not connected. Please reconnect.");
+  try{
+    const tx=await contract.autoRelease(id);
+    showTx(tx.hash); await tx.wait(); await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
 }
 
-function hideCursor(){document.getElementById('cursor').style.opacity='0';}
-
-function showHighlight(x,y,w,h,dur){
-  dur=dur||2200;
-  var r=document.getElementById('highlight');
-  r.style.left=x+'px';r.style.top=y+'px';r.style.width=w+'px';r.style.height=h+'px';r.style.opacity='1';
-  setTimeout(function(){r.style.opacity='0';},dur);
+async function raiseDispute(){
+  if(!contract) return alert("Wallet not connected. Please reconnect.");
+  const id=activeId;
+  closeModal('dispute-modal');
+  try{
+    const tx=await contract.raiseDispute(id);
+    showTx(tx.hash); await tx.wait(); await loadEscrows();
+  }catch(e){ alert(e.reason||e.message); }
 }
 
-function zoomTo(scale,originPt,dur){
-  dur=dur||900;
-  var b=document.querySelector('.browser');if(!b)return;
-  var ox=originPt.x-BX,oy=originPt.y-BY;
-  b.style.transition='transform '+dur+'ms cubic-bezier(0.4,0,0.2,1)';
-  b.style.transformOrigin=ox+'px '+oy+'px';
-  b.style.transform='scale('+scale+')';
-  SFX.zoomIn();
+async function resolveDispute(id,favorFreelancer){
+  if(!contract) return alert("Wallet not connected");
+  const side=favorFreelancer?"freelancer":"client";
+  if(!confirm("Resolve in favor of the "+side+"? This cannot be undone.")) return;
+  try{
+    const tx=await contract.resolveDispute(id,favorFreelancer);
+    showTx(tx.hash); await tx.wait();
+    await loadEscrows();
+    renderArbitrator();
+    alert("Dispute resolved!");
+  }catch(e){ alert(e.reason||e.message); }
 }
-
-function zoomReset(dur){
-  dur=dur||900;
-  var b=document.querySelector('.browser');if(!b)return;
-  b.style.transition='transform '+dur+'ms cubic-bezier(0.4,0,0.2,1)';
-  b.style.transform='scale(1)';
-  SFX.zoomOut();
-}
-
-function getEl(id){
-  var el=document.getElementById(id);if(!el)return null;
-  var sr=document.getElementById('scene').getBoundingClientRect();
-  var er=el.getBoundingClientRect();
-  return{x:er.left-sr.left,y:er.top-sr.top,w:er.width,h:er.height,
-         cx:er.left-sr.left+er.width/2,cy:er.top-sr.top+er.height/2};
-}
-
-function pointTo(id,cb,delay){
-  requestAnimationFrame(function(){requestAnimationFrame(function(){
-    var r=getEl(id);if(r)moveCursor({x:r.cx,y:r.cy},cb,delay);
-  });});
-}
-
-function ringEl(id,pad,dur){
-  pad=pad||4;
-  requestAnimationFrame(function(){requestAnimationFrame(function(){
-    var r=getEl(id);if(r)showHighlight(r.x-pad,r.y-pad,r.w+pad*2,r.h+pad*2,dur);
-  });});
-}
-
-function zoomToEl(id,scale,dur){
-  requestAnimationFrame(function(){requestAnimationFrame(function(){
-    var r=getEl(id);if(r)zoomTo(scale,{x:r.cx,y:r.cy},dur);
-  });});
-}
-
-function getElCenter(id){var r=getEl(id);return r?{x:r.cx,y:r.cy}:{x:640,y:360};}
-
-// =============================================
-// HTML BUILDERS
-// =============================================
-function bHTML(inner){
-  return '<div class="browser" style="left:'+BX+'px;top:'+BY+'px;width:'+BW+'px;">'
-    +'<div class="browser-bar"><div class="browser-dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>'
-    +'<div class="browser-url">clario-app.vercel.app</div></div>'+inner+'</div>';
-}
-
-function shell(hero,mode,tb,body,wallet){
-  wallet=wallet||'connect';
-  var w=wallet==='connect'
-    ?'<button class="connect-btn-ui" id="el-connect">Connect Wallet</button>'
-    :'<div class="wallet-chip-ui" id="el-wallet">'+wallet+'</div>';
-  return '<div class="app-header"><div class="app-logo-icon">C</div><span class="app-logo-text">Clario</span>'
-    +'<span class="app-badge">ARC TESTNET</span><div class="app-nav">'
-    +'<button class="nav-btn '+(mode==='client'?'active':'')+'" id="el-tab-client">Client</button>'
-    +'<button class="nav-btn '+(mode==='freelancer'?'active':'')+'" id="el-tab-freelancer">Freelancer</button>'
-    +w+'</div></div>'+hero+tb+body;
-}
-
-function hero(){
-  return '<div class="app-hero" id="el-hero">'
-    +'<div class="app-hero-title">Trustless payments for<br><span>freelancers &amp; clients.</span></div>'
-    +'<div class="app-hero-sub">Clario escrows your USDC on Arc. Clients can\'t ghost. Freelancers can\'t be scammed.</div>'
-    +'<div class="hero-pills" id="el-pills">'
-    +'<span class="pill">&#10003; USDC Escrow</span><span class="pill">&#10003; Dispute Resolution</span>'
-    +'<span class="pill">&#10003; Auto-Release in 3 days</span><span class="pill">&#10003; 1% Protocol Fee</span>'
-    +'</div></div>';
-}
-
-function sbar(tot,act,comp,vol){
-  return '<div class="personal-stats-bar" id="el-stats">'
-    +'<div class="pstat"><div class="pstat-num">'+tot+'</div><div class="pstat-label">Your Escrows</div></div>'
-    +'<div class="pstat"><div class="pstat-num">'+act+'</div><div class="pstat-label">Active</div></div>'
-    +'<div class="pstat"><div class="pstat-num">'+comp+'</div><div class="pstat-label">Completed</div></div>'
-    +'<div class="pstat"><div class="pstat-num">'+vol+'</div><div class="pstat-label">USDC Volume</div></div>'
-    +'</div>';
-}
-
-function tabs(a){
-  a=a||'list';
-  return '<div class="app-tabs">'
-    +'<button class="app-tab '+(a==='list'?'active':'')+'" id="el-tab-list">All Escrows</button>'
-    +'<button class="app-tab '+(a==='create'?'active':'')+'" id="el-tab-new">+ New Escrow</button>'
-    +'</div>';
-}
-
-function banner(){
-  return '<div class="info-banner" id="el-banner">'
-    +'<div class="info-item"><div class="info-num">100%</div><div class="info-desc">Funds locked before work begins</div></div>'
-    +'<div class="info-item"><div class="info-num">3 days</div><div class="info-desc">Auto-release if client goes silent</div></div>'
-    +'<div class="info-item"><div class="info-num">1%</div><div class="info-desc">Protocol fee on settled escrows</div></div>'
-    +'</div>';
-}
-
-function card(id,desc,amt,recv,dl,status,a1,a2,link){
-  link=link||'';
-  var bm={active:'badge-active',delivered:'badge-delivered',completed:'badge-completed'};
-  var lm={active:'ACTIVE',delivered:'DELIVERED',completed:'COMPLETED'};
-  var am={
-    active:'<button class="btn-deliver" id="el-btn-deliver">&#8594; Submit Delivery</button><button class="btn-dispute">&#9873; Dispute</button>',
-    delivered:'<button class="btn-release" id="el-btn-release">&#10003; Release Payment</button><button class="btn-dispute">&#9873; Dispute</button>',
-    completed:''
-  };
-  return '<div class="escrow-card" id="el-escrow-card">'
-    +'<div class="escrow-card-header"><div><div class="esc-id">ESC-'+id+'</div><div class="esc-desc">'+desc+'</div></div>'
-    +'<span class="badge '+bm[status]+'" id="el-badge">'+lm[status]+'</span></div>'
-    +'<div class="esc-grid" id="el-esc-grid">'
-    +'<div class="esc-cell"><div class="esc-cell-label">Amount</div><div class="esc-cell-val">'+amt+' USDC</div></div>'
-    +'<div class="esc-cell"><div class="esc-cell-label">Freelancer gets</div><div class="esc-cell-val">'+recv+' USDC</div></div>'
-    +'<div class="esc-cell"><div class="esc-cell-label">Deadline</div><div class="esc-cell-val" style="font-size:9px;">'+dl+'</div></div>'
-    +'</div>'
-    +'<div class="esc-addr" id="el-esc-addr"><span>Client: '+a1+'</span><span>Freelancer: '+a2+'</span></div>'
-    +(link?'<div style="background:#061a06;border:1px solid #0d3d1a;border-radius:5px;padding:7px 10px;margin-bottom:8px;font-family:\'JetBrains Mono\',monospace;font-size:8px;color:#22c55e;" id="el-delivery-link">'+link+'</div>':'')
-    +'<div class="esc-actions">'+(am[status]||'')+'</div></div>';
-}
-
-function mm(amt,lbl,x,y){
-  return '<div class="mm-popup" id="el-mm-popup" style="left:'+x+'px;top:'+y+'px;">'
-    +'<div class="mm-logo"><span class="mm-fox">&#129418;</span><span class="mm-title">MetaMask</span></div>'
-    +'<div class="mm-network"><div class="mm-network-name">Arc Testnet</div><div class="mm-network-sub">Chain ID: 5042002</div></div>'
-    +'<div class="mm-amount">'+amt+'</div><div class="mm-label">'+lbl+'</div>'
-    +'<div class="mm-btns"><button class="mm-reject">Reject</button><button class="mm-confirm" id="el-mm-confirm">Confirm</button></div>'
-    +'</div>';
-}
-
-// =============================================
-// SCENES
-// =============================================
-
-addScene(0,function(){
-  setStep('Intro');
-  setContent('<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">'
-    +'<div style="display:flex;align-items:center;gap:14px;animation:fadeInUp 1s ease forwards;">'
-    +'<div style="width:56px;height:56px;background:linear-gradient(135deg,#166534,#16a34a);border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:\'Syne\',sans-serif;font-size:28px;font-weight:800;color:#fff;">C</div>'
-    +'<span style="font-family:\'Syne\',sans-serif;font-size:48px;font-weight:800;color:#fff;letter-spacing:-1px;">Clario</span></div>'
-    +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#22c55e;background:#061a06;border:1px solid #0d3d1a;padding:4px 16px;border-radius:20px;letter-spacing:2px;">BUILT ON ARC &middot; POWERED BY USDC</div>'
-    +'<div style="font-family:\'Syne\',sans-serif;font-size:22px;font-weight:700;color:#4d8c4d;margin-top:8px;">Trustless Freelance Escrow</div>'
-    +'<div style="display:flex;gap:12px;margin-top:8px;">'
-    +'<span style="font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;background:#061a06;color:#22c55e;border:1px solid #0d3d1a;">&#10003; USDC Escrow</span>'
-    +'<span style="font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;background:#061a06;color:#22c55e;border:1px solid #0d3d1a;">&#10003; Dispute Resolution</span>'
-    +'<span style="font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;background:#061a06;color:#22c55e;border:1px solid #0d3d1a;">&#10003; Auto-Release</span>'
-    +'</div></div>');
-  showCaption('Welcome to Clario — Trustless Freelance Escrow on Arc',5000);
-});
-
-addScene(5000,function(){
-  setStep('1/6 · Landing Page');
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('list'),
-      '<div class="app-body">'+banner()+'<div style="text-align:center;padding:30px;color:#2a5c2a;font-size:11px;">No escrows yet — connect your wallet to get started</div></div>')));
-    showCaption('This is the Clario homepage — clean, dark, and ready',4000);
-  });
-});
-
-addScene(8000,function(){
-  zoomToEl('el-pills',1.35,900);
-  setTimeout(function(){ringEl('el-pills',6,2800);},1000);
-  showCaption('Notice the key features — USDC Escrow, Dispute Resolution, Auto-Release',4000);
-});
-addScene(12000,function(){zoomReset();});
-
-addScene(15000,function(){
-  setStep('2/6 · Connect Wallet');
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('list'),'<div class="app-body">'+banner()+'</div>')));
-    setTimeout(function(){
-      pointTo('el-connect',function(){ringEl('el-connect',5,2500);showCaption('Click "Connect Wallet" to get started',3000);},800);
-    },600);
-  });
-});
-
-addScene(18500,function(){
-  document.getElementById('scene-content').innerHTML+=mm('Connect','Connect to Clario on Arc Testnet',820,95);
-  showCaption('MetaMask pops up — confirm the connection',4000);
-  setTimeout(function(){pointTo('el-mm-confirm',function(){ringEl('el-mm-confirm',4,2000);},700);},400);
-});
-
-addScene(23000,function(){
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('list'),
-      '<div class="app-body">'+banner()+'<div style="text-align:center;padding:30px;color:#2a5c2a;font-size:11px;">No escrows yet — create one to get started</div></div>',
-      '0x8CE6...B3f')));
-    showCaption('Wallet connected! Your address appears in the top right',3500);
-    setTimeout(function(){ringEl('el-wallet',5,2500);pointTo('el-wallet');},600);
-  });
-});
-
-addScene(27000,function(){
-  setStep('3/6 · Creating Escrow');
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('list'),'<div class="app-body">'+banner()+'</div>','0x8CE6...B3f')));
-    setTimeout(function(){
-      pointTo('el-tab-new',function(){ringEl('el-tab-new',5,2500);showCaption('Click "+ New Escrow" to create your first escrow',3000);},800);
-    },600);
-  });
-});
-
-addScene(31000,function(){
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('create'),
-      '<div class="app-body"><div class="form-card"><div class="form-title">Create New Escrow</div>'
-      +'<div class="form-full"><label class="flabel">Describe the work</label><input class="finput-ui" id="el-inp-desc" placeholder="e.g. Logo design"/></div>'
-      +'<div class="form-full"><label class="flabel">Freelancer Wallet Address</label><input class="finput-ui" id="el-inp-addr" placeholder="0x..."/></div>'
-      +'<div class="form-row"><div><label class="flabel">Amount (USDC)</label><input class="finput-ui" id="el-inp-amt" placeholder="50"/></div>'
-      +'<div><label class="flabel">Days Until Deadline</label><input class="finput-ui" id="el-inp-days" placeholder="7"/></div></div>'
-      +'<button class="btn-submit-ui" id="el-btn-submit">&#8594; Lock Funds &amp; Create Escrow</button>'
-      +'</div></div>','0x8CE6...B3f')));
-    showCaption('Fill in the escrow details',4000);
-    setTimeout(function(){pointTo('el-inp-desc');},800);
-  });
-});
-
-addScene(35000,function(){
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('create'),
-      '<div class="app-body"><div class="form-card"><div class="form-title">Create New Escrow</div>'
-      +'<div class="form-full"><label class="flabel">Describe the work</label><input class="finput-ui filled" id="el-inp-desc" value="Logo design for my brand"/></div>'
-      +'<div class="form-full"><label class="flabel">Freelancer Wallet Address</label><input class="finput-ui filled" id="el-inp-addr" value="0xA4f7...9c2E"/></div>'
-      +'<div class="form-row"><div><label class="flabel">Amount (USDC)</label><input class="finput-ui filled" id="el-inp-amt" value="50"/></div>'
-      +'<div><label class="flabel">Days Until Deadline</label><input class="finput-ui filled" id="el-inp-days" value="7"/></div></div>'
-      +'<div class="fhint" id="el-fhint">'
-      +'<div class="fhint-row"><span class="fhint-key">You deposit</span><span class="fhint-val">50.00 USDC</span></div>'
-      +'<div class="fhint-row"><span class="fhint-key">Freelancer receives</span><span class="fhint-val">49.50 USDC</span></div>'
-      +'<div class="fhint-row"><span class="fhint-key">Clario fee (1%)</span><span class="fhint-val">0.50 USDC</span></div>'
-      +'<div class="fhint-row"><span class="fhint-key">Auto-release after delivery</span><span class="fhint-val">3 days</span></div>'
-      +'</div>'
-      +'<button class="btn-submit-ui" id="el-btn-submit">&#8594; Lock Funds &amp; Create Escrow</button>'
-      +'</div></div>','0x8CE6...B3f')));
-    setTimeout(function(){pointTo('el-inp-desc');},300);
-    setTimeout(function(){pointTo('el-inp-addr');},1200);
-    setTimeout(function(){pointTo('el-inp-amt');},2000);
-    setTimeout(function(){pointTo('el-inp-days');},2800);
-    setTimeout(function(){pointTo('el-fhint');ringEl('el-fhint',5,3000);showCaption('49.50 USDC to freelancer, 0.50 fee — transparent breakdown',4500);},3600);
-  });
-});
-
-addScene(41000,function(){
-  setStep('3/6 · Approving USDC');
-  pointTo('el-btn-submit',function(){
-    clickCursor(getElCenter('el-btn-submit'),function(){
-      document.getElementById('scene-content').innerHTML+=mm('50.00 USDC','Approve USDC spending for Clario escrow',818,75);
-      showCaption('First confirmation — approve USDC spending',4000);
-      setTimeout(function(){pointTo('el-mm-confirm',function(){ringEl('el-mm-confirm',4,2000);},700);},500);
-    });
-  },600);
-});
-
-addScene(46000,function(){
-  var p=document.getElementById('el-mm-popup');if(p)p.remove();
-  document.getElementById('scene-content').innerHTML+=mm('50.00 USDC','Lock funds in Clario smart contract on Arc',818,75);
-  showCaption('Second confirmation — lock the funds in the smart contract',4000);
-  setTimeout(function(){pointTo('el-mm-confirm',function(){ringEl('el-mm-confirm',4,2000);},600);},400);
-});
-
-addScene(51000,function(){
-  setStep('3/6 · Escrow Created &#10003;');
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('list'),
-      '<div class="app-body">'+sbar(1,1,0,'50.00 USDC')+banner()
-      +card('0001','Logo design for my brand','50.00','49.50','16 May 2026','active','0x8CE6...B3f','0xA4f7...9c2E')
-      +'<div class="tx-bar-ui">// tx confirmed on Arc &#8594; 0x1e3...777c6 &middot; View on Explorer &#8599;</div>'
-      +'</div>','0x8CE6...B3f')));
-    SFX.success();
-    showCaption('&#10003; Escrow created! 50 USDC is now locked on Arc',4000);
-    setTimeout(function(){ringEl('el-escrow-card',6,3000);pointTo('el-badge');},700);
-  });
-});
-
-addScene(54000,function(){
-  zoomToEl('el-esc-grid',1.4,900);
-  showCaption('The card shows amount, deadline, and wallet addresses',4000);
-  setTimeout(function(){pointTo('el-esc-grid');ringEl('el-esc-grid',5,2500);},950);
-});
-addScene(58500,function(){zoomReset();});
-
-addScene(60000,function(){
-  setStep('4/6 · Freelancer View');
-  hideCursor();
-  fadeTo(function(){
-    setContent('<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">'
-      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#22c55e;letter-spacing:2px;">SWITCHING TO FREELANCER</div>'
-      +'<div style="font-family:\'Syne\',sans-serif;font-size:36px;font-weight:800;color:#fff;">Now let\'s see the<br><span style="color:#22c55e;">freelancer\'s side</span></div>'
-      +'<div style="font-size:14px;color:#4d8c4d;max-width:500px;text-align:center;line-height:1.7;">Your friend opens Clario on their device, connects their wallet, and switches to Freelancer mode</div>'
-      +'</div>');
-    showCaption('Switch to a different browser — or your friend opens Clario on their device',5000);
-  });
-});
-
-addScene(65000,function(){
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('list'),
-      '<div class="app-body">'+banner()+'<div style="text-align:center;padding:30px;color:#2a5c2a;font-size:11px;">Connect your wallet to view escrows</div></div>')));
-    showCaption("A new browser opens — this is the freelancer's view",4000);
-    setTimeout(function(){pointTo('el-connect',function(){ringEl('el-connect',5,2000);},800);},700);
-  });
-});
-
-addScene(70000,function(){
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'freelancer',tabs('list'),
-      '<div class="app-body">'+sbar(1,1,0,'0.00 USDC')+banner()
-      +card('0001','Logo design for my brand','50.00','49.50','16 May 2026','active','0x8CE6...B3f','0xA4f7...9c2E')
-      +'</div>','0xA4f7...9c2E')));
-    showCaption('Freelancer switches to "Freelancer" tab — sees the escrow instantly',4000);
-    setTimeout(function(){pointTo('el-tab-freelancer',function(){ringEl('el-tab-freelancer',5,1800);},600);},500);
-    setTimeout(function(){pointTo('el-escrow-card',function(){ringEl('el-escrow-card',6,2500);},700);},2500);
-  });
-});
-
-addScene(74000,function(){
-  zoomToEl('el-esc-grid',1.5,900);
-  showCaption('Freelancer verifies 50 USDC is locked — BEFORE starting any work',5000);
-  setTimeout(function(){pointTo('el-esc-grid');ringEl('el-esc-grid',5,3000);},950);
-});
-addScene(79000,function(){zoomReset();});
-
-addScene(80000,function(){
-  setStep('5/6 · Submitting Delivery');
-  showCaption('Work is done! The freelancer submits their delivery link',4000);
-  setTimeout(function(){
-    pointTo('el-btn-deliver',function(){ringEl('el-btn-deliver',5,2000);showCaption('Click "Submit Delivery" to share the work',3000);},700);
-  },1000);
-});
-
-addScene(84000,function(){
-  fadeTo(function(){
-    setContent(bHTML(
-      shell(hero(),'freelancer',tabs('list'),
-        '<div class="app-body">'+sbar(1,1,0,'0.00 USDC')
-        +card('0001','Logo design for my brand','50.00','49.50','16 May 2026','active','0x8CE6...B3f','0xA4f7...9c2E')
-        +'</div>','0xA4f7...9c2E')
-      +'<div class="delivery-modal"><div class="delivery-modal-inner">'
-      +'<div class="delivery-modal-title">Submit Your Delivery</div>'
-      +'<input class="delivery-input" id="el-delivery-inp" placeholder="https://drive.google.com/..."/>'
-      +'<div class="delivery-sub-text">Share a Google Drive, Figma, GitHub or any link.</div>'
-      +'<div class="delivery-btns">'
-      +'<button class="delivery-submit" id="el-delivery-submit">Submit Delivery</button>'
-      +'<button class="delivery-cancel">Cancel</button>'
-      +'</div></div></div>'));
-    showCaption('A modal appears — paste a link to the completed work',4000);
-    setTimeout(function(){pointTo('el-delivery-inp');},700);
-  });
-});
-
-addScene(88000,function(){
-  var inp=document.getElementById('el-delivery-inp');
-  if(inp){inp.value='https://drive.google.com/file/clario-logo-design';inp.style.color='#22c55e';}
-  showCaption('Link entered — stored permanently on the Arc blockchain',4000);
-  ringEl('el-delivery-inp',4,3000);
-});
-
-addScene(92000,function(){
-  pointTo('el-delivery-submit',function(){clickCursor(getElCenter('el-delivery-submit'));},600);
-});
-
-addScene(93500,function(){
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'freelancer',tabs('list'),
-      '<div class="app-body">'+sbar(1,1,0,'0.00 USDC')
-      +card('0001','Logo design for my brand','50.00','49.50','16 May 2026','delivered','0x8CE6...B3f','0xA4f7...9c2E','drive.google.com/file/clario-logo-design')
-      +'<div class="tx-bar-ui">// delivery submitted on Arc &#8594; 0x9f2...a31b &middot; View on Explorer &#8599;</div>'
-      +'</div>','0xA4f7...9c2E')));
-    showCaption('Status changes to DELIVERED — the client is notified',4000);
-    setTimeout(function(){pointTo('el-badge',function(){ringEl('el-badge',5,2500);},700);},600);
-  });
-});
-
-addScene(98000,function(){
-  setStep('6/6 · Releasing Payment');
-  hideCursor();
-  fadeTo(function(){
-    setContent('<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">'
-      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#22c55e;letter-spacing:2px;">BACK TO CLIENT</div>'
-      +'<div style="font-family:\'Syne\',sans-serif;font-size:36px;font-weight:800;color:#fff;">Client reviews<br><span style="color:#22c55e;">&amp; releases payment</span></div>'
-      +'<div style="font-size:14px;color:#4d8c4d;text-align:center;line-height:1.7;">The client opens Clario, sees the delivered status,<br>reviews the work link, and releases the funds</div>'
-      +'</div>');
-    showCaption('Back to the client — they see the work has been delivered',4000);
-  });
-});
-
-addScene(103000,function(){
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('list'),
-      '<div class="app-body">'+sbar(1,1,0,'50.00 USDC')
-      +card('0001','Logo design for my brand','50.00','49.50','16 May 2026','delivered','0x8CE6...B3f','0xA4f7...9c2E','drive.google.com/file/clario-logo-design')
-      +'</div>','0x8CE6...B3f')));
-    showCaption('Client sees DELIVERED badge and the delivery link',4000);
-    setTimeout(function(){pointTo('el-badge',function(){ringEl('el-badge',5,2000);},700);},600);
-    setTimeout(function(){pointTo('el-delivery-link',function(){ringEl('el-delivery-link',4,2000);},700);showCaption('Client clicks the link, reviews the work — satisfied!',3500);},3500);
-  });
-});
-
-addScene(107000,function(){
-  zoomToEl('el-delivery-link',1.55,900);
-  setTimeout(function(){pointTo('el-delivery-link');},950);
-});
-addScene(110500,function(){zoomReset();});
-
-addScene(112000,function(){
-  showCaption('Click "Release Payment" to send funds to the freelancer',3000);
-  setTimeout(function(){pointTo('el-btn-release',function(){ringEl('el-btn-release',5,2000);},700);},600);
-});
-
-addScene(115000,function(){
-  clickCursor(getElCenter('el-btn-release'),function(){
-    document.getElementById('scene-content').innerHTML+=mm('49.50 USDC','Release payment to freelancer wallet',818,75);
-    showCaption('One MetaMask confirmation — funds transfer instantly on Arc',4000);
-    setTimeout(function(){pointTo('el-mm-confirm',function(){ringEl('el-mm-confirm',4,2000);},700);},500);
-  });
-});
-
-addScene(120000,function(){
-  setStep('Complete &#10003;');
-  fadeTo(function(){
-    setContent(bHTML(shell(hero(),'client',tabs('list'),
-      '<div class="app-body">'+sbar(1,0,1,'50.00 USDC')
-      +card('0001','Logo design for my brand','50.00','49.50','16 May 2026','completed','0x8CE6...B3f','0xA4f7...9c2E','drive.google.com/file/clario-logo-design')
-      +'<div class="tx-bar-ui">// payment released on Arc &#8594; 0x4a1...b92c &middot; View on Explorer &#8599;</div>'
-      +'</div>','0x8CE6...B3f')));
-    SFX.success();
-    showCaption('&#10003; COMPLETED — Freelancer received 49.50 USDC. Deal closed on-chain.',5000);
-    setTimeout(function(){pointTo('el-badge',function(){ringEl('el-badge',5,2500);},700);},600);
-  });
-});
-
-addScene(124000,function(){
-  zoomToEl('el-escrow-card',1.15,1000);
-  setTimeout(function(){zoomReset(1000);hideCursor();},3500);
-});
-
-addScene(130000,function(){
-  fadeTo(function(){
-    setContent('<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">'
-      +'<div style="display:flex;align-items:center;gap:14px;">'
-      +'<div style="width:50px;height:50px;background:linear-gradient(135deg,#166534,#16a34a);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:\'Syne\',sans-serif;font-size:24px;font-weight:800;color:#fff;">C</div>'
-      +'<span style="font-family:\'Syne\',sans-serif;font-size:42px;font-weight:800;color:#fff;letter-spacing:-1px;">Clario</span></div>'
-      +'<div style="font-family:\'Syne\',sans-serif;font-size:20px;font-weight:700;color:#22c55e;">No middleman. No scams. No waiting.</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:600px;width:100%;">'
-      +'<div style="background:#060f06;border:1px solid #0d2d0d;border-radius:10px;padding:16px;text-align:center;"><div style="font-family:\'Syne\',sans-serif;font-size:28px;font-weight:800;color:#22c55e;">100%</div><div style="font-size:11px;font-weight:600;color:#2a5c2a;margin-top:4px;">Funds locked upfront</div></div>'
-      +'<div style="background:#060f06;border:1px solid #0d2d0d;border-radius:10px;padding:16px;text-align:center;"><div style="font-family:\'Syne\',sans-serif;font-size:28px;font-weight:800;color:#22c55e;">&lt;1s</div><div style="font-size:11px;font-weight:600;color:#2a5c2a;margin-top:4px;">Arc finality</div></div>'
-      +'<div style="background:#060f06;border:1px solid #0d2d0d;border-radius:10px;padding:16px;text-align:center;"><div style="font-family:\'Syne\',sans-serif;font-size:28px;font-weight:800;color:#22c55e;">3 days</div><div style="font-size:11px;font-weight:600;color:#2a5c2a;margin-top:4px;">Auto-release protection</div></div>'
-      +'<div style="background:#060f06;border:1px solid #0d2d0d;border-radius:10px;padding:16px;text-align:center;"><div style="font-family:\'Syne\',sans-serif;font-size:28px;font-weight:800;color:#22c55e;">1%</div><div style="font-size:11px;font-weight:600;color:#2a5c2a;margin-top:4px;">Protocol fee only</div></div>'
-      +'</div>'
-      +'<div style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#4d8c4d;margin-top:8px;">Built on Arc &middot; Powered by Circle USDC</div>'
-      +'<div style="font-size:13px;color:#2a5c2a;font-weight:600;">Try it &#8594; clario-app.vercel.app</div>'
-      +'</div>');
-    hideCursor();
-  });
-  showCaption('Try Clario today — link in the article',10000);
-});
 </script>
 </body>
 </html>
-
