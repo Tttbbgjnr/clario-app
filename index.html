@@ -1022,6 +1022,31 @@ function renderCreateForm() {
           <label class="flabel">Total Amount <span>(USDC)</span></label>
           <input class="finput" type="number" id="f-amount" placeholder="50" oninput="updateBreakdown()"/>
         </div>
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--white2);">Upfront Payment</div>
+              <div style="font-size:11px;color:var(--white4);margin-top:2px;">Pay freelancer a % before work begins</div>
+            </div>
+            <div onclick="toggleUpfront()" id="upfront-toggle" style="width:40px;height:22px;background:var(--bg);border:1px solid var(--border);border-radius:20px;position:relative;cursor:pointer;transition:all 0.2s;flex-shrink:0;">
+              <div id="upfront-knob" style="width:16px;height:16px;background:var(--white4);border-radius:50%;position:absolute;top:2px;left:2px;transition:all 0.2s;"></div>
+            </div>
+          </div>
+          <div id="upfront-fields" style="display:none;margin-top:10px;padding:14px;background:var(--bg3);border:1px solid var(--green4);border-radius:var(--radius-sm);">
+            <label class="flabel">Upfront % <span>(freelancer receives this before starting work)</span></label>
+            <input class="finput" type="number" id="f-upfront-pct" placeholder="e.g. 30" min="1" max="99" oninput="updateUpfrontDisplay()"/>
+            <div id="upfront-summary" style="display:none;margin-top:10px;display:flex;gap:8px;">
+              <div style="flex:1;background:var(--bg);border:1px solid var(--green4);border-radius:var(--radius-sm);padding:10px;text-align:center;">
+                <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--green);" id="upfront-amt">—</div>
+                <div style="font-size:9px;font-weight:700;color:var(--white4);text-transform:uppercase;letter-spacing:0.6px;margin-top:3px;">Paid Upfront</div>
+              </div>
+              <div style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center;">
+                <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--white2);" id="upfront-remaining">—</div>
+                <div style="font-size:9px;font-weight:700;color:var(--white4);text-transform:uppercase;letter-spacing:0.6px;margin-top:3px;">On Delivery</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="form-group">
           <label class="flabel">Days Until Deadline</label>
           <input class="finput" type="number" id="f-days" placeholder="7"/>
@@ -1033,15 +1058,25 @@ function renderCreateForm() {
     </div>
 
     <div class="form-section">
-      <div class="form-section-title">Milestone Split</div>
-      <div class="milestone-inputs">
-        <div class="milestone-input-card">
-          <div class="milestone-input-title">MILESTONE 1 — % of total</div>
-          <input class="finput" type="number" id="f-m1" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;"/>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;">
+        <div class="form-section-title" style="margin-bottom:0;">Upfront Payment</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;color:var(--white4);" id="milestone-toggle-label">Off — full payment on delivery</span>
+          <div onclick="toggleMilestone()" id="milestone-toggle" style="width:40px;height:22px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer;position:relative;transition:all 0.2s;">
+            <div id="milestone-knob" style="width:16px;height:16px;background:var(--white4);border-radius:50%;position:absolute;top:2px;left:2px;transition:all 0.2s;"></div>
+          </div>
         </div>
-        <div class="milestone-input-card">
-          <div class="milestone-input-title">MILESTONE 2 — % of total</div>
-          <input class="finput" type="number" id="f-m2" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;" readonly/>
+      </div>
+      <div id="milestone-inputs" style="display:none;margin-top:14px;">
+        <div class="milestone-inputs">
+          <div class="milestone-input-card">
+            <div class="milestone-input-title">UPFRONT — % of total</div>
+            <input class="finput" type="number" id="f-m1" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;"/>
+          </div>
+          <div class="milestone-input-card">
+            <div class="milestone-input-title">ON DELIVERY — % of total</div>
+            <input class="finput" type="number" id="f-m2" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;" readonly/>
+          </div>
         </div>
       </div>
     </div>
@@ -1064,25 +1099,28 @@ function renderCreateForm() {
 
 function updateBreakdown() {
   const a = parseFloat(document.getElementById('f-amount')?.value);
-  const m1p = parseFloat(document.getElementById('f-m1')?.value) || 50;
-  const t = 3;
   const bd = document.getElementById('breakdown');
   if (!bd) return;
   if (a > 0) {
     bd.style.display = 'block';
     const fee = (a*0.01).toFixed(2);
     const recv = (a - parseFloat(fee)).toFixed(2);
-    const m1 = (a * m1p/100).toFixed(2);
-    const m2 = (a * (100-m1p)/100).toFixed(2);
-    // auto-sync m2
-    const m2el = document.getElementById('f-m2');
-    if (m2el) m2el.value = 100-m1p;
     document.getElementById('bd-total').textContent = a.toFixed(2)+' USDC';
-    document.getElementById('bd-m1').textContent = m1+' USDC';
-    document.getElementById('bd-m2').textContent = m2+' USDC';
     document.getElementById('bd-fee').textContent = fee+' USDC';
     document.getElementById('bd-recv').textContent = recv+' USDC';
-    document.getElementById('bd-timeout').textContent = t+' days';
+    document.getElementById('bd-timeout').textContent = '3 days';
+    if (milestoneOn) {
+      const m1p = parseFloat(document.getElementById('f-m1')?.value) || 50;
+      const m1 = (a * m1p/100).toFixed(2);
+      const m2 = (a * (100-m1p)/100).toFixed(2);
+      const m2el = document.getElementById('f-m2');
+      if (m2el) m2el.value = 100-m1p;
+      document.getElementById('bd-m1').textContent = m1+' USDC (upfront)';
+      document.getElementById('bd-m2').textContent = m2+' USDC (on delivery)';
+    } else {
+      document.getElementById('bd-m1').textContent = '—';
+      document.getElementById('bd-m2').textContent = a.toFixed(2)+' USDC (full on delivery)';
+    }
   } else { bd.style.display='none'; }
 }
 
@@ -1398,8 +1436,100 @@ function showTx(hash) {
   });
 }
 
+// ── MILESTONE TOGGLE ─────────────────────────────────────────────────
+let milestoneEnabled = false;
+function toggleMilestone() {
+  milestoneEnabled = !milestoneEnabled;
+  const inputs = document.getElementById('milestone-inputs');
+  const toggle = document.getElementById('milestone-toggle');
+  const knob = document.getElementById('milestone-knob');
+  if (milestoneEnabled) {
+    inputs.style.display = 'block';
+    toggle.style.background = 'var(--green4)';
+    toggle.style.borderColor = 'var(--green3)';
+    knob.style.background = 'var(--green)';
+    knob.style.left = '20px';
+  } else {
+    inputs.style.display = 'none';
+    toggle.style.background = 'var(--bg3)';
+    toggle.style.borderColor = 'var(--border)';
+    knob.style.background = 'var(--white4)';
+    knob.style.left = '2px';
+  }
+  updateBreakdown();
+}
+
+// ── UPFRONT TOGGLE ───────────────────────────────────────────────────
+let upfrontEnabled = false;
+
+function toggleUpfront() {
+  upfrontEnabled = !upfrontEnabled;
+  const fields = document.getElementById('upfront-fields');
+  const toggle = document.getElementById('upfront-toggle');
+  const knob = document.getElementById('upfront-knob');
+  if (upfrontEnabled) {
+    fields.style.display = 'block';
+    toggle.style.background = 'var(--green4)';
+    toggle.style.borderColor = 'var(--green3)';
+    knob.style.background = 'var(--green)';
+    knob.style.left = '22px';
+  } else {
+    fields.style.display = 'none';
+    toggle.style.background = 'var(--bg)';
+    toggle.style.borderColor = 'var(--border)';
+    knob.style.background = 'var(--white4)';
+    knob.style.left = '2px';
+    document.getElementById('upfront-amt').textContent = '—';
+    document.getElementById('upfront-remaining').textContent = '—';
+    document.getElementById('upfront-summary').style.display = 'none';
+  }
+}
+
+function updateUpfrontDisplay() {
+  const a = parseFloat(document.getElementById('f-amount')?.value);
+  const pct = parseFloat(document.getElementById('f-upfront-pct')?.value);
+  const summary = document.getElementById('upfront-summary');
+  if (a > 0 && pct > 0 && pct < 100) {
+    const upfront = (a * pct / 100).toFixed(2);
+    const remaining = (a * (100 - pct) / 100).toFixed(2);
+    document.getElementById('upfront-amt').textContent = upfront + ' USDC';
+    document.getElementById('upfront-remaining').textContent = remaining + ' USDC';
+    summary.style.display = 'flex';
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
 // ── INIT ─────────────────────────────────────────────────────────────
 navigate('dashboard');
+
+// ── MILESTONE TOGGLE ──────────────────────────────────────────────────
+let milestoneOn = false;
+function toggleMilestone() {
+  milestoneOn = !milestoneOn;
+  const inputs = document.getElementById('milestone-inputs');
+  const knob = document.getElementById('milestone-knob');
+  const toggle = document.getElementById('milestone-toggle');
+  const label = document.getElementById('milestone-toggle-label');
+  if (milestoneOn) {
+    inputs.style.display = 'block';
+    knob.style.left = '20px';
+    knob.style.background = 'var(--green)';
+    toggle.style.background = 'var(--green4)';
+    toggle.style.borderColor = 'var(--green3)';
+    label.textContent = 'On — split payment';
+    label.style.color = 'var(--green)';
+  } else {
+    inputs.style.display = 'none';
+    knob.style.left = '2px';
+    knob.style.background = 'var(--white4)';
+    toggle.style.background = 'var(--bg3)';
+    toggle.style.borderColor = 'var(--border)';
+    label.textContent = 'Off — full payment on delivery';
+    label.style.color = 'var(--white4)';
+  }
+  updateBreakdown();
+}
 
 // ── SIDEBAR TOGGLE ────────────────────────────────────────────────────
 function toggleSidebar() {
