@@ -1057,29 +1057,7 @@ function renderCreateForm() {
       </div>
     </div>
 
-    <div class="form-section">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;">
-        <div class="form-section-title" style="margin-bottom:0;">Upfront Payment</div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:11px;color:var(--white4);" id="milestone-toggle-label">Off — full payment on delivery</span>
-          <div onclick="toggleMilestone()" id="milestone-toggle" style="width:40px;height:22px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer;position:relative;transition:all 0.2s;">
-            <div id="milestone-knob" style="width:16px;height:16px;background:var(--white4);border-radius:50%;position:absolute;top:2px;left:2px;transition:all 0.2s;"></div>
-          </div>
-        </div>
-      </div>
-      <div id="milestone-inputs" style="display:none;margin-top:14px;">
-        <div class="milestone-inputs">
-          <div class="milestone-input-card">
-            <div class="milestone-input-title">UPFRONT — % of total</div>
-            <input class="finput" type="number" id="f-m1" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;"/>
-          </div>
-          <div class="milestone-input-card">
-            <div class="milestone-input-title">ON DELIVERY — % of total</div>
-            <input class="finput" type="number" id="f-m2" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;" readonly/>
-          </div>
-        </div>
-      </div>
-    </div>
+
 
     <div id="breakdown" style="display:none;" class="breakdown">
       <div class="breakdown-title">Payment Breakdown</div>
@@ -1436,28 +1414,6 @@ function showTx(hash) {
   });
 }
 
-// ── MILESTONE TOGGLE ─────────────────────────────────────────────────
-let milestoneEnabled = false;
-function toggleMilestone() {
-  milestoneEnabled = !milestoneEnabled;
-  const inputs = document.getElementById('milestone-inputs');
-  const toggle = document.getElementById('milestone-toggle');
-  const knob = document.getElementById('milestone-knob');
-  if (milestoneEnabled) {
-    inputs.style.display = 'block';
-    toggle.style.background = 'var(--green4)';
-    toggle.style.borderColor = 'var(--green3)';
-    knob.style.background = 'var(--green)';
-    knob.style.left = '20px';
-  } else {
-    inputs.style.display = 'none';
-    toggle.style.background = 'var(--bg3)';
-    toggle.style.borderColor = 'var(--border)';
-    knob.style.background = 'var(--white4)';
-    knob.style.left = '2px';
-  }
-  updateBreakdown();
-}
 
 // ── UPFRONT TOGGLE ───────────────────────────────────────────────────
 let upfrontEnabled = false;
@@ -1503,33 +1459,6 @@ function updateUpfrontDisplay() {
 // ── INIT ─────────────────────────────────────────────────────────────
 navigate('dashboard');
 
-// ── MILESTONE TOGGLE ──────────────────────────────────────────────────
-let milestoneOn = false;
-function toggleMilestone() {
-  milestoneOn = !milestoneOn;
-  const inputs = document.getElementById('milestone-inputs');
-  const knob = document.getElementById('milestone-knob');
-  const toggle = document.getElementById('milestone-toggle');
-  const label = document.getElementById('milestone-toggle-label');
-  if (milestoneOn) {
-    inputs.style.display = 'block';
-    knob.style.left = '20px';
-    knob.style.background = 'var(--green)';
-    toggle.style.background = 'var(--green4)';
-    toggle.style.borderColor = 'var(--green3)';
-    label.textContent = 'On — split payment';
-    label.style.color = 'var(--green)';
-  } else {
-    inputs.style.display = 'none';
-    knob.style.left = '2px';
-    knob.style.background = 'var(--white4)';
-    toggle.style.background = 'var(--bg3)';
-    toggle.style.borderColor = 'var(--border)';
-    label.textContent = 'Off — full payment on delivery';
-    label.style.color = 'var(--white4)';
-  }
-  updateBreakdown();
-}
 
 // ── SIDEBAR TOGGLE ────────────────────────────────────────────────────
 function toggleSidebar() {
