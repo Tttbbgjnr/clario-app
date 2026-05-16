@@ -1,288 +1,826 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Clario — Trustless Freelance Escrow on Arc</title>
+<title>Clario V1.2 — Trustless Freelance Escrow</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ── RESET & ROOT ─────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#000;--bg2:#0a0a0a;
-  --green:#22c55e;--green2:#16a34a;--green3:#166534;--green4:#0d3d1a;--green5:#061a06;
-  --border:#0d2d0d;--border2:#1a3a1a;
-  --text:#f0fff0;--text2:#a0c0a0;--text3:#4d8c4d;--text4:#2a5c2a;
-  --amber:#f59e0b;--blue:#60a5fa;--red:#f87171;
+  --bg:#000;
+  --bg2:#080808;
+  --bg3:#0f0f0f;
+  --bg4:#141414;
+  --green:#22c55e;
+  --green2:#16a34a;
+  --green3:#166534;
+  --green4:#0d3d1a;
+  --green5:#061a06;
+  --border:#111;
+  --border2:#1a2a1a;
+  --white:#ffffff;
+  --white2:#e8e8e8;
+  --white3:#a0a0a0;
+  --white4:#555;
+  --amber:#f59e0b;
+  --red:#f87171;
+  --blue:#60a5fa;
+  --font-main:'DM Sans',sans-serif;
+  --font-display:'Syne',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --radius:10px;
+  --radius-sm:6px;
+  --radius-lg:14px;
+  --shadow:0 4px 24px rgba(0,0,0,0.6);
+  --shadow-green:0 0 24px rgba(34,197,94,0.12);
+  --transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
 
-/* HEADER */
-.header{background:var(--bg);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;height:60px;gap:12px;position:sticky;top:0;z-index:100;}
-.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--green3),var(--green2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;}
-.logo-text{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;}
-.logo-badge{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);background:var(--green5);border:1px solid var(--green4);padding:2px 8px;border-radius:20px;letter-spacing:1px;}
-.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
-.nav-btn{font-size:13px;font-weight:600;padding:6px 16px;border-radius:6px;cursor:pointer;transition:all 0.15s;background:transparent;color:var(--text3);border:1px solid var(--border);}
-.nav-btn:hover,.nav-btn.active{background:var(--green5);color:var(--green);border-color:var(--green4);}
-.connect-btn{background:var(--green3);color:var(--green);border:1px solid var(--green2);font-size:13px;font-weight:700;padding:8px 20px;border-radius:6px;cursor:pointer;}
-.connect-btn:hover{background:var(--green2);}
-.wallet-chip{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);background:var(--green5);border:1px solid var(--green4);padding:8px 14px;border-radius:6px;}
+body{
+font-family:var(–font-main);
+background:var(–bg);
+color:var(–white2);
+min-height:100vh;
+display:flex;
+overflow:hidden;
+}
 
-/* HERO */
-.hero{padding:48px 32px;border-bottom:1px solid var(--border);}
-.hero-title{font-family:'Syne',sans-serif;font-size:40px;font-weight:800;color:#fff;line-height:1.15;margin-bottom:12px;letter-spacing:-1px;}
-.hero-title span{color:var(--green);}
-.hero-sub{font-size:15px;color:var(--text3);line-height:1.7;max-width:560px;font-weight:500;margin-bottom:20px;}
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+.sidebar{
+width:240px;
+min-height:100vh;
+background:#111;
+border-right:2px solid #222;
+display:flex;
+flex-direction:column;
+position:fixed;
+top:0;left:0;bottom:0;
+z-index:100;
+transition:width 0.25s cubic-bezier(0.4,0,0.2,1);
+overflow:hidden;
+}
+.sidebar.collapsed{width:62px;}
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .logo-version,
+.sidebar.collapsed .sidebar-wallet,
+.sidebar.collapsed .nav-badge,
+.sidebar.collapsed .nav-item>span:not(.nav-icon){display:none;}
+.sidebar.collapsed .sidebar-logo{justify-content:center;padding:14px 0;}
+.sidebar.collapsed .nav-item{justify-content:center;padding:12px 0;}
+.sidebar.collapsed #sidebar-toggle{margin-left:0;}
+
+.sidebar-logo{
+padding:22px 20px;
+border-bottom:1px solid #222;
+display:flex;align-items:center;gap:12px;
+}
+
+.logo-mark{
+width:34px;height:34px;
+background:linear-gradient(135deg,var(–green3),var(–green2));
+border-radius:9px;
+display:flex;align-items:center;justify-content:center;
+font-family:var(–font-display);
+font-size:16px;font-weight:800;color:#fff;
+flex-shrink:0;
+box-shadow:var(–shadow-green);
+}
+
+.logo-text{
+font-family:var(–font-display);
+font-size:18px;font-weight:800;
+color:var(–white);letter-spacing:-0.5px;
+}
+
+.logo-version{
+font-family:var(–font-mono);
+font-size:9px;color:var(–green);
+background:var(–green5);
+border:1px solid var(–green4);
+padding:1px 6px;border-radius:20px;
+margin-left:2px;
+}
+
+.sidebar-nav{
+flex:1;padding:16px 12px;
+display:flex;flex-direction:column;gap:2px;
+}
+
+.nav-item{
+display:flex;align-items:center;gap:12px;
+padding:10px 14px;border-radius:var(–radius-sm);
+cursor:pointer;transition:var(–transition);
+color:var(–white4);font-size:13px;font-weight:600;
+border:1px solid transparent;
+position:relative;
+}
+
+.nav-item:hover{
+background:var(–bg3);color:var(–white3);
+}
+
+.nav-item.active{
+background:var(–green5);
+color:var(–green);
+border-color:var(–green4);
+}
+
+.nav-item.active .nav-icon{color:var(–green);}
+
+.nav-icon{
+font-size:16px;width:20px;text-align:center;
+transition:var(–transition);
+}
+
+.nav-badge{
+margin-left:auto;
+font-family:var(–font-mono);
+font-size:9px;font-weight:600;
+background:var(–green4);color:var(–green);
+padding:2px 7px;border-radius:20px;
+}
+
+.sidebar-wallet{
+padding:16px 12px;
+border-top:1px solid #222;
+}
+
+.wallet-card{
+background:var(–bg3);
+border:1px solid var(–border);
+border-radius:var(–radius);
+padding:12px 14px;
+}
+
+.wallet-label{
+font-size:9px;font-weight:700;
+color:var(–white4);text-transform:uppercase;
+letter-spacing:0.8px;margin-bottom:6px;
+}
+
+.wallet-addr{
+font-family:var(–font-mono);
+font-size:11px;color:var(–green);
+margin-bottom:8px;
+}
+
+.wallet-network{
+display:flex;align-items:center;gap:6px;
+font-size:10px;color:var(–white4);
+}
+
+.network-dot{
+width:6px;height:6px;
+border-radius:50%;background:var(–green);
+box-shadow:0 0 6px var(–green);
+animation:pulse 2s infinite;
+}
+
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+
+.connect-sidebar-btn{
+width:100%;padding:10px;
+background:var(–green4);color:var(–green);
+border:1px solid var(–green3);
+border-radius:var(–radius-sm);
+font-size:12px;font-weight:700;
+cursor:pointer;transition:var(–transition);
+font-family:var(–font-main);
+}
+.connect-sidebar-btn:hover{background:var(–green3);transform:translateY(-1px);}
+
+/* ── MAIN CONTENT ────────────────────────────────────────── */
+.main{
+margin-left:240px;
+flex:1;
+min-height:100vh;
+display:flex;flex-direction:column;
+overflow-y:auto;
+max-height:100vh;
+transition:margin-left 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+.main.expanded{margin-left:62px;}
+
+.topbar{
+height:60px;
+background:var(–bg2);
+border-bottom:1px solid var(–border);
+display:flex;align-items:center;
+padding:0 32px;gap:16px;
+position:sticky;top:0;z-index:50;
+}
+
+.topbar-title{
+font-family:var(–font-display);
+font-size:16px;font-weight:700;
+color:var(–white);
+}
+
+.topbar-right{
+margin-left:auto;
+display:flex;align-items:center;gap:12px;
+}
+
+.role-toggle{
+display:flex;
+background:var(–bg3);
+border:1px solid var(–border);
+border-radius:var(–radius-sm);
+overflow:hidden;
+}
+
+.role-btn{
+padding:6px 16px;font-size:12px;font-weight:700;
+background:transparent;color:var(–white4);
+border:none;cursor:pointer;transition:var(–transition);
+font-family:var(–font-main);
+}
+.role-btn.active{background:var(–green4);color:var(–green);}
+
+.topbar-chip{
+font-family:var(–font-mono);
+font-size:10px;color:var(–green);
+background:var(–green5);border:1px solid var(–green4);
+padding:5px 12px;border-radius:var(–radius-sm);
+}
+
+.page-content{padding:32px;}
+
+/* ── DASHBOARD PAGE ──────────────────────────────────────── */
+.dashboard-hero{
+background:var(–bg2);
+border:1px solid var(–border);
+border-radius:var(–radius-lg);
+padding:36px 40px;
+margin-bottom:24px;
+position:relative;overflow:hidden;
+}
+
+.dashboard-hero::before{
+content:’’;position:absolute;
+top:-100px;right:-100px;
+width:400px;height:400px;
+background:radial-gradient(circle,rgba(34,197,94,0.06) 0%,transparent 70%);
+pointer-events:none;
+}
+
+.hero-tag{
+font-family:var(–font-mono);
+font-size:10px;color:var(–green);
+letter-spacing:2px;text-transform:uppercase;
+margin-bottom:14px;
+display:flex;align-items:center;gap:8px;
+}
+.hero-tag::before{content:’’;width:20px;height:1px;background:var(–green);}
+
+.hero-title{
+font-family:var(–font-display);
+font-size:36px;font-weight:800;
+color:var(–white);line-height:1.15;
+letter-spacing:-0.5px;margin-bottom:10px;
+}
+.hero-title span{color:var(–green);}
+
+.hero-sub{
+font-size:14px;color:var(–white3);
+line-height:1.7;max-width:500px;
+margin-bottom:20px;
+}
+
 .hero-pills{display:flex;gap:8px;flex-wrap:wrap;}
-.pill{font-size:11px;font-weight:600;padding:5px 14px;border-radius:20px;background:var(--green5);color:var(--green);border:1px solid var(--green4);}
+.pill{
+font-size:11px;font-weight:600;
+padding:5px 14px;border-radius:20px;
+background:var(–bg3);color:var(–white3);
+border:1px solid var(–border2);
+transition:var(–transition);
+}
+.pill.green{background:var(–green5);color:var(–green);border-color:var(–green4);}
 
-/* PERSONAL STATS */
-.personal-stats{display:none;background:var(--bg);border-bottom:1px solid var(--border);}
-.personal-stats-inner{display:grid;grid-template-columns:repeat(4,1fr);}
-.pstat{padding:24px 32px;border-right:1px solid var(--border);}
-.pstat:last-child{border-right:none;}
-.pstat-num{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--green);line-height:1;}
-.pstat-label{font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;}
+/* STATS GRID */
+.stats-grid{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:12px;margin-bottom:24px;
+}
 
-/* TABS */
-.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg);padding:0 32px;}
-.tab{font-size:13px;font-weight:700;padding:16px 20px;border:none;background:transparent;color:var(--text4);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color 0.15s;}
-.tab:hover{color:var(--text2);}
-.tab.active{color:var(--green);border-bottom-color:var(--green);}
-.tab-right{margin-left:auto;}
+.stat-card{
+background:var(–bg2);
+border:1px solid var(–border);
+border-radius:var(–radius);
+padding:20px 22px;
+transition:var(–transition);
+cursor:default;
+}
+.stat-card:hover{border-color:var(–border2);transform:translateY(-2px);}
 
-/* BODY */
-.body{padding:32px;max-width:900px;margin:0 auto;width:100%;flex:1;}
+.stat-num{
+font-family:var(–font-display);
+font-size:32px;font-weight:800;
+color:var(–white);line-height:1;
+margin-bottom:6px;
+}
+.stat-num.green{color:var(–green);}
+.stat-num.white{color:var(–white);}
 
-/* INFO BANNER */
-.info-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;}
-.info-item{background:var(--bg2);padding:20px 24px;}
-.info-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--green);}
-.info-desc{font-size:12px;font-weight:600;color:var(--text4);margin-top:4px;line-height:1.5;}
-.section-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;}
+.stat-label{
+font-size:11px;font-weight:700;
+color:var(–white4);
+text-transform:uppercase;letter-spacing:0.8px;
+}
 
-/* CARDS */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px;transition:border-color 0.15s;}
-.card:hover{border-color:var(--border2);}
-.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
-.escrow-id{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4);letter-spacing:1px;margin-bottom:5px;}
-.escrow-desc{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#fff;line-height:1.2;}
-.badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:5px 12px;border-radius:20px;letter-spacing:0.5px;white-space:nowrap;}
-.badge-active{background:#0a1a00;color:var(--green);border:1px solid var(--green4);}
-.badge-delivered{background:#1a1000;color:var(--amber);border:1px solid #3d2800;}
+.stat-change{
+font-size:10px;color:var(–green);
+margin-top:4px;font-weight:600;
+}
+
+/* SECTION HEADER */
+.section-header{
+display:flex;align-items:center;
+justify-content:space-between;
+margin-bottom:16px;
+}
+.section-title{
+font-family:var(–font-mono);
+font-size:10px;color:var(–white4);
+text-transform:uppercase;letter-spacing:1.5px;
+}
+.section-action{
+font-size:12px;font-weight:600;
+color:var(–green);cursor:pointer;
+background:none;border:none;
+font-family:var(–font-main);
+transition:var(–transition);
+}
+.section-action:hover{color:var(–green2);}
+
+/* ── ESCROW CARDS ────────────────────────────────────────── */
+.escrow-card{
+background:var(–bg2);
+border:1px solid var(–border);
+border-radius:var(–radius-lg);
+padding:22px 24px;
+margin-bottom:12px;
+transition:var(–transition);
+position:relative;overflow:hidden;
+}
+.escrow-card:hover{
+border-color:var(–border2);
+transform:translateY(-2px);
+box-shadow:var(–shadow);
+}
+.escrow-card::before{
+content:’’;
+position:absolute;left:0;top:0;bottom:0;
+width:3px;border-radius:var(–radius-lg) 0 0 var(–radius-lg);
+transition:var(–transition);
+}
+.escrow-card.status-active::before{background:var(–green);}
+.escrow-card.status-delivered::before{background:var(–amber);}
+.escrow-card.status-completed::before{background:#4ade80;}
+.escrow-card.status-disputed::before{background:var(–red);}
+.escrow-card.status-refunded::before{background:var(–blue);}
+
+.card-header{
+display:flex;justify-content:space-between;
+align-items:flex-start;margin-bottom:16px;
+}
+
+.card-meta{font-size:10px;font-weight:600;color:var(–white4);margin-bottom:4px;font-family:var(–font-mono);letter-spacing:0.8px;}
+.card-title{font-family:var(–font-display);font-size:17px;font-weight:700;color:var(–white);line-height:1.2;}
+
+.badge{
+font-family:var(–font-mono);font-size:9px;font-weight:600;
+padding:4px 10px;border-radius:20px;letter-spacing:0.5px;
+white-space:nowrap;
+}
+.badge-active{background:#0a1a00;color:var(–green);border:1px solid var(–green4);}
+.badge-delivered{background:#1a1000;color:var(–amber);border:1px solid #3d2800;}
 .badge-completed{background:#001a0a;color:#4ade80;border:1px solid #0d4a1a;}
-.badge-disputed{background:#1a0000;color:var(--red);border:1px solid #3d0000;}
-.badge-refunded{background:#0a0a1a;color:var(--blue);border:1px solid #0a1a3d;}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
-.cell{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
-.cell-label{font-size:10px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.6px;}
-.cell-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#c8ffc8;margin-top:5px;}
-.addr-row{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text4);margin-bottom:14px;padding:8px 12px;background:var(--bg);border-radius:6px;border:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-.delivery-box{background:var(--green5);border:1px solid var(--green4);border-radius:8px;padding:12px 14px;margin-bottom:14px;}
-.delivery-label{font-size:10px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;}
-.delivery-link a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);text-decoration:underline;word-break:break-all;}
+.badge-disputed{background:#1a0000;color:var(–red);border:1px solid #3d0000;}
+.badge-refunded{background:#0a0a1a;color:var(–blue);border:1px solid #0a1a3d;}
+
+.card-grid{
+display:grid;grid-template-columns:repeat(4,1fr);
+gap:8px;margin-bottom:14px;
+}
+.card-cell{
+background:var(–bg3);border:1px solid var(–border);
+border-radius:var(–radius-sm);padding:10px 12px;
+}
+.cell-label{font-size:9px;font-weight:700;color:var(–white4);text-transform:uppercase;letter-spacing:0.6px;}
+.cell-val{font-family:var(–font-mono);font-size:13px;font-weight:600;color:var(–white2);margin-top:3px;}
+.cell-val.green{color:var(–green);}
+.cell-val.white{color:var(–white);}
+
+.card-addresses{
+font-family:var(–font-mono);font-size:9px;color:var(–white4);
+margin-bottom:14px;padding:8px 12px;
+background:var(–bg3);border-radius:var(–radius-sm);border:1px solid var(–border);
+display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;
+}
+
+.delivery-link-box{
+background:var(–green5);border:1px solid var(–green4);
+border-radius:var(–radius-sm);padding:10px 12px;
+margin-bottom:14px;
+}
+.delivery-link-label{font-size:9px;font-weight:700;color:var(–white4);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;}
+.delivery-link-url{font-family:var(–font-mono);font-size:10px;color:var(–green);}
+.delivery-link-url a{color:var(–green);text-decoration:underline;}
+
+/* MILESTONE BAR */
+.milestone-bar{
+margin-bottom:14px;
+}
+.milestone-label{font-size:10px;font-weight:700;color:var(–white4);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;}
+.milestones{display:flex;gap:8px;}
+.milestone{
+flex:1;background:var(–bg3);border:1px solid var(–border);
+border-radius:var(–radius-sm);padding:8px 12px;
+position:relative;
+}
+.milestone.done{border-color:var(–green4);background:var(–green5);}
+.milestone.pending{border-color:#3d2800;background:#1a1000;}
+.milestone-num{font-family:var(–font-mono);font-size:9px;color:var(–white4);margin-bottom:3px;}
+.milestone-amount{font-family:var(–font-mono);font-size:12px;font-weight:600;color:var(–white2);}
+.milestone.done .milestone-amount{color:var(–green);}
+.milestone.pending .milestone-amount{color:var(–amber);}
+.milestone-status{font-size:9px;font-weight:700;margin-top:3px;}
+.milestone.done .milestone-status{color:var(–green);}
+.milestone.pending .milestone-status{color:var(–amber);}
+
 .card-actions{display:flex;gap:8px;flex-wrap:wrap;}
-.btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;border-radius:8px;cursor:pointer;transition:all 0.15s;border:none;letter-spacing:0.2px;}
-.btn-green{background:var(--green4);color:var(--green);border:1px solid var(--green3);}
-.btn-green:hover{background:var(--green3);}
-.btn-red{background:#1a0000;color:var(--red);border:1px solid #3d0000;}
-.btn-red:hover{background:#2a0000;}
 
-/* FORM */
-.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px;}
-.form-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;margin-bottom:22px;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+/* ── BUTTONS ─────────────────────────────────────────────── */
+.btn{
+font-family:var(–font-main);font-size:12px;font-weight:700;
+padding:9px 18px;border-radius:var(–radius-sm);
+cursor:pointer;transition:var(–transition);border:none;
+letter-spacing:0.2px;display:inline-flex;align-items:center;gap:6px;
+position:relative;overflow:hidden;
+}
+.btn::after{
+content:’’;position:absolute;inset:0;
+background:rgba(255,255,255,0);
+transition:background 0.15s;
+}
+.btn:hover::after{background:rgba(255,255,255,0.05);}
+.btn:active{transform:scale(0.97);}
+
+.btn-primary{background:var(–green3);color:var(–green);border:1px solid var(–green2);}
+.btn-primary:hover{background:var(–green2);box-shadow:var(–shadow-green);}
+.btn-white{background:var(–white);color:#000;border:1px solid var(–white2);}
+.btn-white:hover{background:var(–white2);}
+.btn-ghost{background:var(–bg3);color:var(–white3);border:1px solid var(–border);}
+.btn-ghost:hover{color:var(–white);border-color:var(–border2);}
+.btn-danger{background:#1a0000;color:var(–red);border:1px solid #3d0000;}
+.btn-danger:hover{background:#2a0000;}
+.btn-full{width:100%;justify-content:center;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+
+/* ── CREATE FORM ─────────────────────────────────────────── */
+.form-container{
+background:var(–bg2);border:1px solid var(–border);
+border-radius:var(–radius-lg);padding:32px;
+max-width:680px;
+}
+
+.form-title{
+font-family:var(–font-display);font-size:22px;font-weight:800;
+color:var(–white);margin-bottom:6px;
+}
+.form-subtitle{font-size:13px;color:var(–white4);margin-bottom:28px;line-height:1.6;}
+
+.form-section{margin-bottom:24px;}
+.form-section-title{
+font-size:11px;font-weight:700;color:var(–white3);
+text-transform:uppercase;letter-spacing:0.8px;
+margin-bottom:14px;padding-bottom:8px;
+border-bottom:1px solid var(–border);
+}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{margin-bottom:14px;}
 .form-group.full{grid-column:1/-1;}
-.flabel{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:7px;}
-.finput{width:100%;font-size:14px;font-family:'DM Sans',sans-serif;padding:11px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);outline:none;transition:border-color 0.15s;}
-.finput:focus{border-color:var(--green3);}
-.finput::placeholder{color:var(--text4);}
-.fhint{background:var(--green5);border:1px solid var(--green4);border-radius:8px;padding:16px;margin-top:16px;}
-.fhint-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);}
-.fhint-row:last-child{border-bottom:none;padding-top:10px;margin-top:4px;}
-.fhint-key{font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:0.5px;}
-.fhint-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--green);}
-.approve-notice{background:#1a1000;border:1px solid #3d2800;border-radius:8px;padding:12px 16px;font-size:12px;color:var(--amber);font-weight:600;margin-top:16px;}
-.btn-submit{width:100%;padding:14px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;background:var(--green3);color:var(--green);border:1px solid var(--green2);border-radius:8px;cursor:pointer;letter-spacing:0.3px;margin-top:16px;}
-.btn-submit:hover{background:var(--green2);}
-.btn-submit:disabled{opacity:0.4;cursor:not-allowed;}
 
-/* EMPTY */
-.empty{text-align:center;padding:80px 20px;}
-.empty-icon{font-size:40px;margin-bottom:16px;}
-.empty-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--green4);margin-bottom:8px;}
-.empty-sub{font-size:14px;color:var(--text4);font-weight:500;}
+.flabel{
+font-size:11px;font-weight:700;color:var(–white3);
+text-transform:uppercase;letter-spacing:0.6px;
+display:block;margin-bottom:6px;
+}
+.flabel span{color:var(–white4);font-weight:500;text-transform:none;letter-spacing:0;}
 
-/* TX */
-.tx-bar{background:var(--green5);border:1px solid var(--green4);border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);word-break:break-all;margin-top:16px;}
-.tx-bar a{color:#4dbb6e;}
-.loading{text-align:center;padding:50px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);}
+.finput{
+width:100%;font-size:14px;font-family:var(–font-main);
+padding:11px 14px;border:1px solid var(–border);
+border-radius:var(–radius-sm);background:var(–bg3);
+color:var(–white);outline:none;transition:var(–transition);
+}
+.finput:focus{border-color:var(–green3);box-shadow:0 0 0 3px rgba(34,197,94,0.08);}
+.finput::placeholder{color:var(–white4);}
+.finput:hover{border-color:var(–border2);}
 
-/* MODALS */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;}
-.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;width:100%;max-width:440px;}
-.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:18px;}
-.modal-actions{display:flex;gap:10px;margin-top:18px;}
+/* MILESTONE INPUTS */
+.milestone-inputs{
+display:grid;grid-template-columns:1fr 1fr;gap:12px;
+background:var(–bg3);border:1px solid var(–border);
+border-radius:var(–radius);padding:16px;margin-top:4px;
+}
+.milestone-input-card{
+background:var(–bg2);border:1px solid var(–border);
+border-radius:var(–radius-sm);padding:12px;
+}
+.milestone-input-title{
+font-family:var(–font-mono);font-size:10px;color:var(–white4);
+margin-bottom:8px;letter-spacing:0.5px;
+}
 
-/* FOOTER */
-.footer{background:var(--green5);border-top:1px solid var(--border);padding:14px 32px;display:none;flex-direction:row;align-items:center;gap:24px;flex-wrap:wrap;}
-.footer-item{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4);}
-.footer-item span{color:var(--green);}
-.footer-brand{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text4);margin-left:auto;}
+/* BREAKDOWN */
+.breakdown{
+background:var(–bg3);border:1px solid var(–green4);
+border-radius:var(–radius);padding:16px;margin:16px 0;
+}
+.breakdown-title{
+font-size:10px;font-weight:700;color:var(–white4);
+text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;
+}
+.breakdown-row{
+display:flex;justify-content:space-between;
+align-items:center;padding:6px 0;
+border-bottom:1px solid var(–border);
+}
+.breakdown-row:last-child{border-bottom:none;padding-top:10px;margin-top:4px;}
+.breakdown-key{font-size:12px;font-weight:600;color:var(–white4);}
+.breakdown-val{font-family:var(–font-mono);font-size:13px;font-weight:600;color:var(–green);}
+.breakdown-val.white{color:var(–white);}
+
+.notice{
+background:#1a1000;border:1px solid #3d2800;
+border-radius:var(–radius-sm);padding:10px 14px;
+font-size:11px;color:var(–amber);font-weight:600;
+margin-bottom:16px;display:flex;align-items:center;gap:8px;
+}
+
+/* ── MODALS ──────────────────────────────────────────────── */
+.modal-overlay{
+position:fixed;inset:0;background:rgba(0,0,0,0.88);
+display:flex;align-items:center;justify-content:center;
+z-index:1000;padding:20px;
+animation:fadeIn 0.2s ease;
+}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+.modal{
+background:var(–bg2);border:1px solid var(–border2);
+border-radius:var(–radius-lg);padding:28px;
+width:100%;max-width:460px;
+animation:slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+.modal-title{
+font-family:var(–font-display);font-size:18px;font-weight:800;
+color:var(–white);margin-bottom:6px;
+}
+.modal-sub{font-size:13px;color:var(–white4);margin-bottom:20px;line-height:1.6;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+
+/* ── TX BAR ──────────────────────────────────────────────── */
+.tx-bar{
+background:var(–green5);border:1px solid var(–green4);
+border-radius:var(–radius);padding:12px 16px;
+font-family:var(–font-mono);font-size:11px;color:var(–green);
+word-break:break-all;margin-top:16px;
+display:flex;align-items:center;gap:8px;
+animation:slideUp 0.3s ease;
+}
+.tx-bar a{color:#4dbb6e;text-decoration:none;}
+.tx-bar a:hover{text-decoration:underline;}
+
+/* ── EMPTY STATE ─────────────────────────────────────────── */
+.empty{
+text-align:center;padding:80px 20px;
+display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.empty-icon{font-size:40px;opacity:0.3;}
+.empty-title{
+font-family:var(–font-display);font-size:20px;font-weight:800;
+color:var(–white4);
+}
+.empty-sub{font-size:13px;color:var(–white4);max-width:320px;line-height:1.6;}
+
+/* ── LOADING ─────────────────────────────────────────────── */
+.loading{
+text-align:center;padding:60px;
+font-family:var(–font-mono);font-size:12px;color:var(–white4);
+display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.spinner{
+width:24px;height:24px;border:2px solid var(–border);
+border-top-color:var(–green);border-radius:50%;
+animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── SETTINGS PAGE ───────────────────────────────────────── */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.settings-card{
+background:var(–bg2);border:1px solid var(–border);
+border-radius:var(–radius-lg);padding:24px;
+}
+.settings-card-title{
+font-family:var(–font-display);font-size:15px;font-weight:700;
+color:var(–white);margin-bottom:16px;
+display:flex;align-items:center;gap:8px;
+}
+.settings-row{
+display:flex;justify-content:space-between;align-items:center;
+padding:10px 0;border-bottom:1px solid var(–border);
+}
+.settings-row:last-child{border-bottom:none;}
+.settings-key{font-size:12px;font-weight:600;color:var(–white4);}
+.settings-val{font-family:var(–font-mono);font-size:11px;color:var(–white2);}
+.settings-val.green{color:var(–green);}
+.settings-val.copy{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;}
+
+.about-card{
+background:var(–bg2);border:1px solid var(–border);
+border-radius:var(–radius-lg);padding:28px;
+margin-bottom:16px;
+}
+.about-logo-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.about-mark{
+width:44px;height:44px;
+background:linear-gradient(135deg,var(–green3),var(–green2));
+border-radius:11px;display:flex;align-items:center;justify-content:center;
+font-family:var(–font-display);font-size:20px;font-weight:800;color:#fff;
+}
+.about-name{font-family:var(–font-display);font-size:22px;font-weight:800;color:var(–white);}
+.about-version{
+font-family:var(–font-mono);font-size:10px;color:var(–green);
+background:var(–green5);border:1px solid var(–green4);
+padding:2px 8px;border-radius:20px;
+}
+.about-desc{font-size:13px;color:var(–white3);line-height:1.7;margin-bottom:16px;}
+.about-tags{display:flex;gap:8px;flex-wrap:wrap;}
+.about-tag{font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(–bg3);color:var(–white4);border:1px solid var(–border);}
+
+/* ── ARBITRATOR PAGE ─────────────────────────────────────── */
+.arb-header{
+background:#0f0000;border:1px solid #3d0000;
+border-radius:var(–radius);padding:14px 18px;
+margin-bottom:20px;font-size:12px;color:var(–red);font-weight:600;
+display:flex;align-items:center;gap:8px;
+}
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+.platform-footer{
+border-top:1px solid var(–border);
+padding:12px 32px;
+display:flex;align-items:center;gap:20px;
+flex-wrap:wrap;background:var(–bg2);
+margin-top:auto;
+}
+.footer-item{
+font-family:var(–font-mono);font-size:10px;color:var(–white4);
+}
+.footer-item span{color:var(–white2);}
+.footer-brand{margin-left:auto;font-family:var(–font-mono);font-size:10px;color:var(–white4);}
+
+/* ── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(–bg);}
+::-webkit-scrollbar-thumb{background:var(–border2);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(–green4);}
 </style>
+
 </head>
 <body>
 
-<div class="header">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <div class="logo-icon">C</div>
-    <span class="logo-text">Clario</span>
-    <span class="logo-badge">ARC TESTNET</span>
-  </div>
-  <div class="header-right">
-    <button class="nav-btn active" onclick="setRole('client')" id="role-client">Client</button>
-    <button class="nav-btn" onclick="setRole('freelancer')" id="role-freelancer">Freelancer</button>
-    <div id="wallet-area">
-      <button class="connect-btn" onclick="connectWallet()">Connect Wallet</button>
-    </div>
-  </div>
-</div>
+<!-- SIDEBAR -->
 
-<div class="hero">
-  <div class="hero-title">Trustless payments for<br><span>freelancers & clients.</span></div>
-  <div class="hero-sub">Clario escrows your USDC on Arc. Clients can't ghost. Freelancers can't be scammed. Disputes settled on-chain. Built on Circle's Arc network.</div>
-  <div class="hero-pills">
-    <span class="pill">✓ USDC Escrow</span>
-    <span class="pill">✓ Dispute Resolution</span>
-    <span class="pill">✓ Auto-Release in 3 days</span>
-    <span class="pill">✓ 1% Protocol Fee</span>
-    <span class="pill">✓ Sub-second Finality</span>
-  </div>
-</div>
-
-<!-- PERSONAL STATS — shows when wallet connected -->
-<div class="personal-stats" id="personal-stats">
-  <div class="personal-stats-inner">
-    <div class="pstat"><div class="pstat-num" id="p-total">0</div><div class="pstat-label">Your Escrows</div></div>
-    <div class="pstat"><div class="pstat-num" id="p-active">0</div><div class="pstat-label">Active</div></div>
-    <div class="pstat"><div class="pstat-num" id="p-completed">0</div><div class="pstat-label">Completed</div></div>
-    <div class="pstat"><div class="pstat-num" id="p-volume">0</div><div class="pstat-label">USDC Volume</div></div>
-  </div>
-</div>
-
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('list')" id="tab-list">All Escrows</button>
-  <button class="tab" onclick="switchTab('create')" id="tab-create">+ New Escrow</button>
-  <button class="tab" onclick="switchTab('arbitrator')" id="tab-arbitrator" style="display:none;">⚖ Arbitrator</button>
-  <button class="tab tab-right" onclick="loadEscrows()" id="tab-refresh" style="display:none;">↻ Refresh</button>
-</div>
-
-<div class="body">
-
-  <!-- LIST VIEW -->
-  <div id="view-list">
-    <div class="info-banner">
-      <div class="info-item"><div class="info-num">100%</div><div class="info-desc">Funds locked before work begins</div></div>
-      <div class="info-item"><div class="info-num">3 days</div><div class="info-desc">Auto-release if client goes silent</div></div>
-      <div class="info-item"><div class="info-num">1%</div><div class="info-desc">Protocol fee on settled escrows</div></div>
-    </div>
-    <div class="section-title" id="list-title">All Escrows</div>
-    <div class="empty" id="empty-state">
-      <div class="empty-icon">◈</div>
-      <div class="empty-title">No escrows yet</div>
-      <div class="empty-sub">Connect your wallet to get started</div>
-    </div>
-    <div id="escrow-list"></div>
-  </div>
-
-  <!-- CREATE VIEW -->
-  <div id="view-create" style="display:none;">
-    <div class="form-card">
-      <div class="form-title">Create New Escrow</div>
-      <div class="form-grid">
-        <div class="form-group full">
-          <label class="flabel">Describe the work</label>
-          <input class="finput" type="text" id="f-desc" placeholder="e.g. Logo design for Acme Corp"/>
-        </div>
-        <div class="form-group full">
-          <label class="flabel">Freelancer Wallet Address</label>
-          <input class="finput" type="text" id="f-freelancer" placeholder="0x..."/>
-        </div>
-        <div class="form-group">
-          <label class="flabel">Amount (USDC)</label>
-          <input class="finput" type="number" id="f-amount" placeholder="50" oninput="updateHint()"/>
-        </div>
-        <div class="form-group">
-          <label class="flabel">Days Until Deadline</label>
-          <input class="finput" type="number" id="f-days" placeholder="7"/>
-        </div>
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">C</div>
+    <div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="logo-text">Clario</span>
+        <span class="logo-version">v1.2</span>
       </div>
-      <div id="form-hint" style="display:none;" class="fhint">
-        <div class="fhint-row"><span class="fhint-key">You deposit</span><span class="fhint-val" id="fh-deposit">—</span></div>
-        <div class="fhint-row"><span class="fhint-key">Freelancer receives</span><span class="fhint-val" id="fh-recv">—</span></div>
-        <div class="fhint-row"><span class="fhint-key">Clario fee (1%)</span><span class="fhint-val" id="fh-fee">—</span></div>
-        <div class="fhint-row"><span class="fhint-key">Auto-release after delivery</span><span class="fhint-val">3 days</span></div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--white4);margin-top:1px;">ARC TESTNET</div>
+    </div>
+  </div>
+  <button onclick="toggleSidebar()" id="sidebar-toggle" style="position:absolute;top:16px;right:12px;background:none;border:1px solid #222;color:var(--white4);cursor:pointer;font-size:13px;padding:5px 8px;transition:all 0.2s;border-radius:5px;z-index:200;" title="Toggle sidebar">☰</button>
+
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">⬡</span>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="navigate('escrows')" id="nav-escrows">
+      <span class="nav-icon">◈</span>
+      <span>Escrows</span>
+      <span class="nav-badge" id="nav-badge" style="display:none;">0</span>
+    </div>
+    <div class="nav-item" onclick="navigate('create')" id="nav-create">
+      <span class="nav-icon">＋</span>
+      <span>New Escrow</span>
+    </div>
+    <div class="nav-item" onclick="navigate('arbitrator')" id="nav-arbitrator" style="display:none;">
+      <span class="nav-icon">⚖</span>
+      <span>Arbitrator</span>
+    </div>
+    <div style="flex:1;"></div>
+    <div class="nav-item" onclick="navigate('settings')" id="nav-settings">
+      <span class="nav-icon">⚙</span>
+      <span>Settings</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-wallet">
+    <div id="sidebar-wallet-area">
+      <button class="connect-sidebar-btn" onclick="connectWallet()">Connect Wallet</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+
+<div class="main" id="main">
+
+  <!-- TOPBAR -->
+
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">Dashboard</span>
+    <div class="topbar-right">
+      <div class="role-toggle" id="role-toggle" style="display:none;">
+        <button class="role-btn active" onclick="setRole('client')" id="role-client">Client</button>
+        <button class="role-btn" onclick="setRole('freelancer')" id="role-freelancer">Freelancer</button>
       </div>
-      <div class="approve-notice">⚠️ Two MetaMask confirmations — first to approve USDC, second to create the escrow.</div>
-      <button class="btn-submit" id="btn-create" onclick="createEscrow()">→ Lock Funds & Create Escrow</button>
+      <div class="topbar-chip" id="topbar-chip" style="display:none;"></div>
     </div>
   </div>
 
-  <!-- ARBITRATOR VIEW -->
-  <div id="view-arbitrator" style="display:none;">
-    <div style="background:#1a0000;border:1px solid #3d0000;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#f87171;font-weight:600;">⚖ Arbitrator Panel — Only visible to you. Resolve disputed escrows below.</div>
-    <div class="section-title">Disputed Escrows</div>
-    <div id="arbitrator-list"></div>
+  <!-- PAGES -->
+
+  <div class="page-content" id="page-content">
+    <!-- Rendered by JS -->
   </div>
 
-  <div id="tx-bar" style="display:none;"></div>
-</div>
+  <!-- FOOTER -->
 
-<!-- FOOTER — platform stats -->
-<div class="footer" id="platform-footer">
-  <span class="footer-item">◈ Clario Network</span>
-  <span class="footer-item">Total: <span id="s-total">—</span></span>
-  <span class="footer-item">Active: <span id="s-active">—</span></span>
-  <span class="footer-item">Completed: <span id="s-completed">—</span></span>
-  <span class="footer-item">Disputed: <span id="s-disputed">—</span></span>
-  <span class="footer-brand">Built on Arc · Powered by Circle USDC</span>
+  <div class="platform-footer" id="platform-footer" style="display:none;">
+    <span class="footer-item">◈ Clario Network</span>
+    <span class="footer-item">Total: <span id="ft-total">—</span></span>
+    <span class="footer-item">Active: <span id="ft-active">—</span></span>
+    <span class="footer-item">Completed: <span id="ft-completed">—</span></span>
+    <span class="footer-item">Disputed: <span id="ft-disputed">—</span></span>
+    <span class="footer-brand">Built on Arc · Powered by Circle USDC</span>
+  </div>
 </div>
 
 <!-- DELIVERY MODAL -->
+
 <div class="modal-overlay" id="delivery-modal" style="display:none;">
   <div class="modal">
     <div class="modal-title">Submit Your Delivery</div>
-    <div>
-      <label class="flabel">Link to your work</label>
-      <input class="finput" type="text" id="delivery-link-input" placeholder="https://drive.google.com/..."/>
-    </div>
-    <div style="font-size:12px;color:var(--text4);margin-top:8px;">Share a Google Drive, Figma, GitHub or any link to your completed work.</div>
+    <div class="modal-sub">Share a link to your completed work. This gets stored permanently on Arc.</div>
+    <label class="flabel">Delivery Link</label>
+    <input class="finput" type="text" id="delivery-link-input" placeholder="https://drive.google.com/..."/>
+    <div style="font-size:11px;color:var(--white4);margin-top:6px;">Google Drive, Figma, GitHub — any public link works.</div>
     <div class="modal-actions">
-      <button class="btn btn-green" style="flex:1;" onclick="submitDelivery()">Submit Delivery</button>
-      <button class="btn btn-red" onclick="closeModal('delivery-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" onclick="submitDelivery()">Submit Delivery</button>
+      <button class="btn btn-ghost" onclick="closeModal('delivery-modal')">Cancel</button>
     </div>
   </div>
 </div>
 
 <!-- DISPUTE MODAL -->
+
 <div class="modal-overlay" id="dispute-modal" style="display:none;">
   <div class="modal">
     <div class="modal-title">Raise a Dispute</div>
-    <div style="font-size:14px;color:var(--text2);line-height:1.7;">A Clario arbitrator will review both sides and decide the outcome. This cannot be undone.</div>
+    <div class="modal-sub">A Clario arbitrator will review both sides and decide the outcome on-chain. This action cannot be undone. Make sure you have a valid reason before proceeding.</div>
     <div class="modal-actions">
-      <button class="btn btn-red" style="flex:1;" onclick="raiseDispute()">Confirm — Raise Dispute</button>
-      <button class="btn btn-green" onclick="closeModal('dispute-modal')">Cancel</button>
+      <button class="btn btn-danger btn-full" onclick="raiseDispute()">Confirm — Raise Dispute</button>
+      <button class="btn btn-ghost" onclick="closeModal('dispute-modal')">Cancel</button>
     </div>
   </div>
 </div>
 
 <script>
-const CONTRACT="0xB1628a2b7536950833AC18681814dBD7466d7B36";
-const USDC_ADDR="0x3600000000000000000000000000000000000000";
-const ARBITRATOR="0x8ce69aef566ce2755672cc27739df4d43a0a6b3f";
-const USDC_DECIMALS=6;
-const ABI=[
+// ── CONSTANTS ────────────────────────────────────────────────────────
+const CONTRACT  = "0xB1628a2b7536950833AC18681814dBD7466d7B36";
+const USDC_ADDR = "0x3600000000000000000000000000000000000000";
+const ARBITRATOR= "0x8ce69aef566ce2755672cc27739df4d43a0a6b3f";
+const USDC_DEC  = 6;
+
+const ABI = [
   "function createEscrow(address,uint256,uint256,string) external",
   "function submitDelivery(uint256,string) external",
   "function releasePayment(uint256) external",
@@ -293,278 +831,657 @@ const ABI=[
   "function getEscrow(uint256) external view returns (tuple(uint256 id,address client,address freelancer,uint256 amount,uint256 deadline,uint256 autoReleaseTime,uint8 status,string description,string deliveryLink))",
   "function escrowCount() external view returns (uint256)"
 ];
-const USDC_ABI=[
+const USDC_ABI = [
   "function approve(address,uint256) external returns (bool)",
-  "function allowance(address,address) external view returns (uint256)"
+  "function allowance(address,address) external view returns (uint256)",
+  "function balanceOf(address) external view returns (uint256)"
 ];
-const STATUS=['Active','Delivered','Completed','Disputed','Refunded'];
-const BADGE=['badge-active','badge-delivered','badge-completed','badge-disputed','badge-refunded'];
-let wallet=null,contract=null,usdc=null,role='client',escrows=[],activeId=null;
 
-function setRole(r){
-  role=r;
-  document.getElementById('role-client').className='nav-btn'+(r==='client'?' active':'');
-  document.getElementById('role-freelancer').className='nav-btn'+(r==='freelancer'?' active':'');
-  document.getElementById('list-title').textContent=r==='client'?'Your Escrows as Client':'Your Escrows as Freelancer';
-  renderEscrows();
+const STATUS_LABELS = ['Active','Delivered','Completed','Disputed','Refunded'];
+const STATUS_BADGES = ['badge-active','badge-delivered','badge-completed','badge-disputed','badge-refunded'];
+const STATUS_CLASSES= ['status-active','status-delivered','status-completed','status-disputed','status-refunded'];
+
+// ── STATE ────────────────────────────────────────────────────────────
+let wallet=null, contract=null, usdc=null;
+let role='client', escrows=[], activeId=null, currentPage='dashboard';
+
+// ── NAVIGATION ───────────────────────────────────────────────────────
+const PAGE_TITLES = {dashboard:'Dashboard',escrows:'Escrows',create:'New Escrow',arbitrator:'Arbitrator Panel',settings:'Settings'};
+
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const nav = document.getElementById('nav-'+page);
+  if (nav) nav.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[page] || page;
+  const roleToggle = document.getElementById('role-toggle');
+  roleToggle.style.display = (page === 'escrows') ? 'flex' : 'none';
+  renderPage(page);
 }
 
-function switchTab(t){
-  ['list','create','arbitrator'].forEach(v=>{
-    document.getElementById('view-'+v).style.display=v===t?'block':'none';
-    const tab=document.getElementById('tab-'+v);
-    if(tab) tab.className='tab'+(v===t?' active':'');
-  });
-  if(t==='arbitrator') renderArbitrator();
+// ── RENDER PAGES ─────────────────────────────────────────────────────
+function renderPage(page) {
+  const el = document.getElementById('page-content');
+  if (page === 'dashboard')   el.innerHTML = renderDashboard();
+  if (page === 'escrows')     renderEscrowsPage();
+  if (page === 'create')      el.innerHTML = renderCreateForm();
+  if (page === 'arbitrator')  renderArbitratorPage();
+  if (page === 'settings')    el.innerHTML = renderSettings();
 }
 
-function updateHint(){
-  const a=parseFloat(document.getElementById('f-amount').value);
-  const h=document.getElementById('form-hint');
-  if(a>0){
-    h.style.display='block';
-    const fee=(a*0.01).toFixed(2);
-    document.getElementById('fh-deposit').textContent=a.toFixed(2)+' USDC';
-    document.getElementById('fh-recv').textContent=(a-parseFloat(fee)).toFixed(2)+' USDC';
-    document.getElementById('fh-fee').textContent=fee+' USDC';
-  } else { h.style.display='none'; }
+// DASHBOARD
+function renderDashboard() {
+  const mine = wallet ? escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase()||e.freelancer.toLowerCase()===wallet.toLowerCase()) : [];
+  const vol = mine.reduce((a,e)=>a+e.amount,0);
+  return `
+  <div class="dashboard-hero">
+    <div class="hero-tag">Trustless Freelance Escrow</div>
+    <div class="hero-title">Clients can't ghost.<br><span>Freelancers can't be scammed.</span></div>
+    <div class="hero-sub">Clario locks USDC on Arc before work begins. Disputes settled on-chain. No middleman, no chargebacks, no waiting.</div>
+    <div class="hero-pills">
+      <span class="pill green">✓ USDC Escrow</span>
+      <span class="pill green">✓ Milestone Payments</span>
+      <span class="pill green">✓ Dispute Resolution</span>
+      <span class="pill green">✓ Auto-Release</span>
+      <span class="pill">Arc Network</span>
+      <span class="pill">Powered by Circle</span>
+    </div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card" onclick="navigate('escrows')" style="cursor:pointer;">
+      <div class="stat-num white">${mine.length || '—'}</div>
+      <div class="stat-label">Your Escrows</div>
+      ${wallet?'<div class="stat-change">↗ All time</div>':''}
+    </div>
+    <div class="stat-card">
+      <div class="stat-num green">${mine.filter(e=>e.status===0||e.status===1).length || '—'}</div>
+      <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num white">${mine.filter(e=>e.status===2).length || '—'}</div>
+      <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num green">${wallet ? vol.toFixed(2) : '—'}</div>
+      <div class="stat-label">USDC Volume</div>
+    </div>
+  </div>
+  ${!wallet ? `
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;max-width:400px;margin:0 auto;">
+    <div style="font-size:32px;margin-bottom:12px;">◈</div>
+    <div style="font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--white);margin-bottom:8px;">Connect your wallet</div>
+    <div style="font-size:13px;color:var(--white4);margin-bottom:20px;line-height:1.6;">Connect MetaMask on Arc Testnet to create and manage escrows.</div>
+    <button class="btn btn-primary btn-full" onclick="connectWallet()">Connect Wallet</button>
+  </div>` : `
+  <div class="section-header">
+    <span class="section-title">Recent Escrows</span>
+    <button class="section-action" onclick="navigate('escrows')">View all →</button>
+  </div>
+  ${escrows.slice(0,3).map(e=>escrowCardHTML(e)).join('') || '<div class="empty"><div class="empty-icon">◈</div><div class="empty-title">No escrows yet</div><div class="empty-sub">Create your first escrow to get started</div></div>'}
+  `}`;
 }
 
-function closeModal(id){ document.getElementById(id).style.display='none'; activeId=null; }
+// ESCROWS PAGE
+function renderEscrowsPage() {
+  const el = document.getElementById('page-content');
+  const list = wallet ? (role==='client'
+    ? escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase())
+    : escrows.filter(e=>e.freelancer.toLowerCase()===wallet.toLowerCase()))
+    : escrows;
 
-function showTx(hash){
-  const el=document.getElementById('tx-bar');
-  el.style.display='block';
-  el.innerHTML='// tx confirmed on Arc → <a href="https://testnet.arcscan.app/tx/'+hash+'" target="_blank">'+hash.slice(0,24)+'...'+hash.slice(-8)+'</a>';
-}
-
-async function connectWallet(){
-  if(!window.ethereum) return alert("Install MetaMask to continue");
-  try{
-    const provider=new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts",[]);
-    const signer=await provider.getSigner();
-    wallet=await signer.getAddress();
-    contract=new ethers.Contract(CONTRACT,ABI,signer);
-    usdc=new ethers.Contract(USDC_ADDR,USDC_ABI,signer);
-    document.getElementById('wallet-area').innerHTML='<div class="wallet-chip">'+wallet.slice(0,6)+'...'+wallet.slice(-4)+'</div>';
-    document.getElementById('tab-refresh').style.display='block';
-    if(wallet.toLowerCase()===ARBITRATOR){
-      document.getElementById('tab-arbitrator').style.display='block';
-    }
-    await loadEscrows();
-  }catch(e){ alert(e.reason||e.message); }
-}
-
-async function loadEscrows(){
-  if(!contract) return;
-  document.getElementById('empty-state').style.display='none';
-  document.getElementById('escrow-list').innerHTML='<div class="loading">// fetching escrows from Arc...</div>';
-  try{
-    const count=Number(await contract.escrowCount());
-    escrows=[];
-    for(let i=count;i>=1;i--){
-      try{
-        const e=await contract.getEscrow(i);
-        escrows.push({
-          id:Number(e.id),
-          client:e.client,
-          freelancer:e.freelancer,
-          amount:Number(ethers.formatUnits(e.amount,USDC_DECIMALS)),
-          deadline:new Date(Number(e.deadline)*1000).toLocaleDateString(),
-          autoReleaseTime:Number(e.autoReleaseTime),
-          status:Number(e.status),
-          description:e.description,
-          deliveryLink:e.deliveryLink
-        });
-      }catch(err){ console.warn(err); }
-    }
-    renderEscrows();
-    updateStats();
-  }catch(e){
-    document.getElementById('escrow-list').innerHTML='<div class="empty"><div class="empty-title">Error loading</div><div class="empty-sub">'+e.message+'</div></div>';
-  }
-}
-
-function updateStats(){
-  // Platform stats in footer
-  document.getElementById('s-total').textContent=escrows.length;
-  document.getElementById('s-active').textContent=escrows.filter(e=>e.status===0||e.status===1).length;
-  document.getElementById('s-completed').textContent=escrows.filter(e=>e.status===2).length;
-  document.getElementById('s-disputed').textContent=escrows.filter(e=>e.status===3).length;
-  document.getElementById('platform-footer').style.display='flex';
-  // Personal stats
-  if(wallet){
-    const mine=escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase()||e.freelancer.toLowerCase()===wallet.toLowerCase());
-    const vol=mine.reduce((a,e)=>a+e.amount,0);
-    document.getElementById('p-total').textContent=mine.length;
-    document.getElementById('p-active').textContent=mine.filter(e=>e.status===0||e.status===1).length;
-    document.getElementById('p-completed').textContent=mine.filter(e=>e.status===2).length;
-    document.getElementById('p-volume').textContent=vol.toFixed(2)+' USDC';
-    document.getElementById('personal-stats').style.display='block';
-  }
-}
-
-function renderEscrows(){
-  const el=document.getElementById('escrow-list');
-  let list=escrows;
-  if(wallet){
-    list=role==='client'
-      ? escrows.filter(e=>e.client.toLowerCase()===wallet.toLowerCase())
-      : escrows.filter(e=>e.freelancer.toLowerCase()===wallet.toLowerCase());
-  }
-  if(!list.length){
-    el.innerHTML='';
-    const em=document.getElementById('empty-state');
-    em.style.display='block';
-    em.innerHTML='<div class="empty-icon">◈</div><div class="empty-title">'+(wallet?'No escrows found':'Connect your wallet')+'</div><div class="empty-sub">'+(wallet?'Create your first escrow to get started':'Connect wallet to view your escrows')+'</div>';
+  if (!wallet) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">◈</div><div class="empty-title">Connect your wallet</div><div class="empty-sub">Connect to view your escrows</div></div>`;
     return;
   }
-  document.getElementById('empty-state').style.display='none';
-  el.innerHTML=list.map(e=>{
-    const isC=wallet&&e.client.toLowerCase()===wallet.toLowerCase();
-    const isF=wallet&&e.freelancer.toLowerCase()===wallet.toLowerCase();
-    const fee=(e.amount*0.01).toFixed(2);
-    const recv=(e.amount-parseFloat(fee)).toFixed(2);
-    const canAuto=e.status===1&&Date.now()/1000>=e.autoReleaseTime&&e.autoReleaseTime>0;
-    return `<div class="card">
-      <div class="card-header">
-        <div>
-          <div class="escrow-id">ESC-${String(e.id).padStart(4,'0')} · ${e.deadline}</div>
-          <div class="escrow-desc">${e.description}</div>
-        </div>
-        <span class="badge ${BADGE[e.status]}">${STATUS[e.status]}</span>
-      </div>
-      <div class="grid3">
-        <div class="cell"><div class="cell-label">Amount</div><div class="cell-val">${e.amount.toFixed(2)} USDC</div></div>
-        <div class="cell"><div class="cell-label">Freelancer gets</div><div class="cell-val">${recv} USDC</div></div>
-        <div class="cell"><div class="cell-label">Deadline</div><div class="cell-val" style="font-size:11px;">${e.deadline}</div></div>
-      </div>
-      <div class="addr-row">
-        <span>Client: ${e.client.slice(0,10)}...${e.client.slice(-6)}</span>
-        <span>Freelancer: ${e.freelancer.slice(0,10)}...${e.freelancer.slice(-6)}</span>
-      </div>
-      ${e.deliveryLink?`<div class="delivery-box"><div class="delivery-label">Delivery submitted</div><div class="delivery-link"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:''}
-      <div class="card-actions">
-        ${e.status===0&&isF?`<button class="btn btn-green" onclick="openDelivery(${e.id})">→ Submit Delivery</button>`:''}
-        ${e.status===1&&isC?`<button class="btn btn-green" onclick="releasePayment(${e.id})">✓ Release Payment</button>`:''}
-        ${canAuto?`<button class="btn btn-green" onclick="autoRelease(${e.id})">⏱ Auto Release</button>`:''}
-        ${(e.status===0||e.status===1)&&(isC||isF)?`<button class="btn btn-red" onclick="openDispute(${e.id})">⚑ Raise Dispute</button>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderArbitrator(){
-  const el=document.getElementById('arbitrator-list');
-  const disputed=escrows.filter(e=>e.status===3);
-  if(!disputed.length){
-    el.innerHTML='<div class="empty"><div class="empty-icon">⚖</div><div class="empty-title">No disputes</div><div class="empty-sub">All clear — no active disputes</div></div>';
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">◈</div><div class="empty-title">No escrows found</div><div class="empty-sub">${role==='client'?'Create your first escrow to get started':'No escrows assigned to your wallet yet'}</div><br><button class="btn btn-primary" onclick="navigate('create')">+ New Escrow</button></div>`;
     return;
   }
-  el.innerHTML=disputed.map(e=>`
-    <div class="card" style="border-color:#3d0000;">
-      <div class="card-header">
-        <div>
-          <div class="escrow-id">ESC-${String(e.id).padStart(4,'0')}</div>
-          <div class="escrow-desc">${e.description}</div>
+  el.innerHTML = `
+    <div class="section-header">
+      <span class="section-title">${role==='client'?'Your escrows as client':'Your escrows as freelancer'} · ${list.length} total</span>
+      <button class="section-action" onclick="loadEscrows()">↻ Refresh</button>
+    </div>
+    ${list.map(e=>escrowCardHTML(e)).join('')}
+    <div id="escrows-tx-bar"></div>`;
+}
+
+// ESCROW CARD HTML
+function escrowCardHTML(e) {
+  const isC = wallet && e.client.toLowerCase()===wallet.toLowerCase();
+  const isF = wallet && e.freelancer.toLowerCase()===wallet.toLowerCase();
+  const fee = (e.amount*0.01).toFixed(2);
+  const recv = (e.amount-parseFloat(fee)).toFixed(2);
+  const canAuto = e.status===1 && Date.now()/1000>=e.autoReleaseTime && e.autoReleaseTime>0;
+
+  // Milestone display (simulated as 50/50 split for V1.2)
+  const m1 = (e.amount*0.5).toFixed(2);
+  const m2 = (e.amount*0.5).toFixed(2);
+  const m1done = e.status >= 1;
+
+  const actions = `
+    ${e.status===0&&isF?`<button class="btn btn-primary" onclick="openDelivery(${e.id})">→ Submit Delivery</button>`:''}
+    ${e.status===1&&isC?`<button class="btn btn-primary" onclick="releasePayment(${e.id})">✓ Release Payment</button>`:''}
+    ${canAuto?`<button class="btn btn-ghost" onclick="autoReleasePayment(${e.id})">⏱ Auto Release</button>`:''}
+    ${(e.status===0||e.status===1)&&(isC||isF)?`<button class="btn btn-danger" onclick="openDispute(${e.id})">⚑ Raise Dispute</button>`:''}
+  `;
+
+  return `
+  <div class="escrow-card ${STATUS_CLASSES[e.status]}">
+    <div class="card-header">
+      <div>
+        <div class="card-meta">ESC-${String(e.id).padStart(4,'0')} · Due ${e.deadline}</div>
+        <div class="card-title">${e.description}</div>
+      </div>
+      <span class="badge ${STATUS_BADGES[e.status]}">${STATUS_LABELS[e.status]}</span>
+    </div>
+    <div class="card-grid">
+      <div class="card-cell"><div class="cell-label">Total Amount</div><div class="cell-val white">${e.amount.toFixed(2)} USDC</div></div>
+      <div class="card-cell"><div class="cell-label">Freelancer Gets</div><div class="cell-val green">${recv} USDC</div></div>
+      <div class="card-cell"><div class="cell-label">Protocol Fee</div><div class="cell-val">${fee} USDC</div></div>
+      <div class="card-cell"><div class="cell-label">Deadline</div><div class="cell-val" style="font-size:11px;">${e.deadline}</div></div>
+    </div>
+    <div class="milestone-bar">
+      <div class="milestone-label">Milestones</div>
+      <div class="milestones">
+        <div class="milestone ${e.status>=1?'done':''}">
+          <div class="milestone-num">Milestone 1 · 50%</div>
+          <div class="milestone-amount">${m1} USDC</div>
+          <div class="milestone-status">${e.status>=1?'✓ Released':'Pending'}</div>
         </div>
-        <span class="badge badge-disputed">DISPUTED</span>
-      </div>
-      <div class="grid3">
-        <div class="cell"><div class="cell-label">Amount</div><div class="cell-val">${e.amount.toFixed(2)} USDC</div></div>
-        <div class="cell"><div class="cell-label">Client</div><div class="cell-val" style="font-size:10px;">${e.client.slice(0,10)}...${e.client.slice(-4)}</div></div>
-        <div class="cell"><div class="cell-label">Freelancer</div><div class="cell-val" style="font-size:10px;">${e.freelancer.slice(0,10)}...${e.freelancer.slice(-4)}</div></div>
-      </div>
-      ${e.deliveryLink?`<div class="delivery-box"><div class="delivery-label">Freelancer delivery</div><div class="delivery-link"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:'<div style="font-size:12px;color:var(--text4);margin-bottom:12px;">No delivery submitted</div>'}
-      <div class="card-actions">
-        <button class="btn btn-green" onclick="resolveDispute(${e.id},true)">✓ Favor Freelancer</button>
-        <button class="btn btn-red" onclick="resolveDispute(${e.id},false)">✗ Favor Client — Refund</button>
+        <div class="milestone ${e.status>=2?'done':e.status>=1?'pending':''}">
+          <div class="milestone-num">Milestone 2 · 50%</div>
+          <div class="milestone-amount">${m2} USDC</div>
+          <div class="milestone-status">${e.status>=2?'✓ Released':e.status>=1?'⏳ Awaiting':'Locked'}</div>
+        </div>
       </div>
     </div>
-  `).join('');
+    <div class="card-addresses">
+      <span>Client: ${e.client.slice(0,10)}...${e.client.slice(-6)}</span>
+      <span>Freelancer: ${e.freelancer.slice(0,10)}...${e.freelancer.slice(-6)}</span>
+    </div>
+    ${e.deliveryLink?`<div class="delivery-link-box"><div class="delivery-link-label">Delivery Submitted</div><div class="delivery-link-url"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:''}
+    ${actions.trim()?`<div class="card-actions">${actions}</div>`:''}
+  </div>`;
 }
 
-async function createEscrow(){
-  if(!contract) return alert("Connect wallet first");
-  const desc=document.getElementById('f-desc').value.trim();
-  const fl=document.getElementById('f-freelancer').value.trim();
-  const amt=document.getElementById('f-amount').value.trim();
-  const days=document.getElementById('f-days').value.trim();
-  if(!desc||!fl||!amt||!days) return alert("All fields are required");
-  const btn=document.getElementById('btn-create');
-  btn.disabled=true; btn.textContent='// Approving USDC...';
-  try{
-    const amount=ethers.parseUnits(amt,USDC_DECIMALS);
-    const allowance=await usdc.allowance(wallet,CONTRACT);
-    if(allowance<amount){ const tx=await usdc.approve(CONTRACT,amount); await tx.wait(); }
-    btn.textContent='// Creating escrow on Arc...';
-    const tx=await contract.createEscrow(fl,amount,Number(days),desc);
-    showTx(tx.hash); await tx.wait();
-    document.getElementById('f-desc').value='';
-    document.getElementById('f-freelancer').value='';
-    document.getElementById('f-amount').value='';
-    document.getElementById('f-days').value='';
-    document.getElementById('form-hint').style.display='none';
-    switchTab('list');
+// CREATE FORM
+function renderCreateForm() {
+  return `
+  <div class="form-container">
+    <div class="form-title">Create New Escrow</div>
+    <div class="form-subtitle">Funds are locked in a smart contract on Arc before work begins. Both parties are protected.</div>
+
+    <div class="form-section">
+      <div class="form-section-title">Project Details</div>
+      <div class="form-group full">
+        <label class="flabel">Describe the work</label>
+        <input class="finput" type="text" id="f-desc" placeholder="e.g. Logo design for Acme Corp"/>
+      </div>
+      <div class="form-group full">
+        <label class="flabel">Freelancer Wallet Address</label>
+        <input class="finput" type="text" id="f-freelancer" placeholder="0x..."/>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Payment & Timeline</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="flabel">Total Amount <span>(USDC)</span></label>
+          <input class="finput" type="number" id="f-amount" placeholder="50" oninput="updateBreakdown()"/>
+        </div>
+        <div class="form-group">
+          <label class="flabel">Days Until Deadline</label>
+          <input class="finput" type="number" id="f-days" placeholder="7"/>
+        </div>
+      </div>
+      <div style="background:var(--green5);border:1px solid var(--green4);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:8px;">
+        ⏱ Auto-release is fixed at <strong>3 days</strong> after delivery — if you don't respond, funds automatically go to the freelancer.
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;">
+        <div class="form-section-title" style="margin-bottom:0;">Upfront Payment</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;color:var(--white4);" id="milestone-toggle-label">Off — full payment on delivery</span>
+          <div onclick="toggleMilestone()" id="milestone-toggle" style="width:40px;height:22px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;cursor:pointer;position:relative;transition:all 0.2s;">
+            <div id="milestone-knob" style="width:16px;height:16px;background:var(--white4);border-radius:50%;position:absolute;top:2px;left:2px;transition:all 0.2s;"></div>
+          </div>
+        </div>
+      </div>
+      <div id="milestone-inputs" style="display:none;margin-top:14px;">
+        <div class="milestone-inputs">
+          <div class="milestone-input-card">
+            <div class="milestone-input-title">UPFRONT — % of total</div>
+            <input class="finput" type="number" id="f-m1" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;"/>
+          </div>
+          <div class="milestone-input-card">
+            <div class="milestone-input-title">ON DELIVERY — % of total</div>
+            <input class="finput" type="number" id="f-m2" placeholder="50" value="50" oninput="updateBreakdown()" style="margin-top:4px;" readonly/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="breakdown" style="display:none;" class="breakdown">
+      <div class="breakdown-title">Payment Breakdown</div>
+      <div class="breakdown-row"><span class="breakdown-key">Total you deposit</span><span class="breakdown-val white" id="bd-total">—</span></div>
+      <div class="breakdown-row"><span class="breakdown-key">Milestone 1 (upfront)</span><span class="breakdown-val" id="bd-m1">—</span></div>
+      <div class="breakdown-row"><span class="breakdown-key">Milestone 2 (on completion)</span><span class="breakdown-val" id="bd-m2">—</span></div>
+      <div class="breakdown-row"><span class="breakdown-key">Clario fee (1%)</span><span class="breakdown-val" id="bd-fee">—</span></div>
+      <div class="breakdown-row"><span class="breakdown-key">Freelancer receives total</span><span class="breakdown-val white" id="bd-recv">—</span></div>
+      <div class="breakdown-row"><span class="breakdown-key">Auto-release timeout</span><span class="breakdown-val">3 days (fixed by Clario)</span></div>
+    </div>
+
+    <div class="notice">⚠ Two MetaMask confirmations — first approves USDC, second creates the escrow.</div>
+    <button class="btn btn-primary btn-full" id="btn-create" onclick="createEscrow()">→ Lock Funds & Create Escrow</button>
+    <div id="create-tx-bar"></div>
+  </div>`;
+}
+
+function updateBreakdown() {
+  const a = parseFloat(document.getElementById('f-amount')?.value);
+  const bd = document.getElementById('breakdown');
+  if (!bd) return;
+  if (a > 0) {
+    bd.style.display = 'block';
+    const fee = (a*0.01).toFixed(2);
+    const recv = (a - parseFloat(fee)).toFixed(2);
+    document.getElementById('bd-total').textContent = a.toFixed(2)+' USDC';
+    document.getElementById('bd-fee').textContent = fee+' USDC';
+    document.getElementById('bd-recv').textContent = recv+' USDC';
+    document.getElementById('bd-timeout').textContent = '3 days';
+    if (milestoneOn) {
+      const m1p = parseFloat(document.getElementById('f-m1')?.value) || 50;
+      const m1 = (a * m1p/100).toFixed(2);
+      const m2 = (a * (100-m1p)/100).toFixed(2);
+      const m2el = document.getElementById('f-m2');
+      if (m2el) m2el.value = 100-m1p;
+      document.getElementById('bd-m1').textContent = m1+' USDC (upfront)';
+      document.getElementById('bd-m2').textContent = m2+' USDC (on delivery)';
+    } else {
+      document.getElementById('bd-m1').textContent = '—';
+      document.getElementById('bd-m2').textContent = a.toFixed(2)+' USDC (full on delivery)';
+    }
+  } else { bd.style.display='none'; }
+}
+
+// ARBITRATOR PAGE
+function renderArbitratorPage() {
+  const el = document.getElementById('page-content');
+  const disputed = escrows.filter(e=>e.status===3);
+  el.innerHTML = `
+    <div class="arb-header">⚖ Arbitrator Panel — Only visible to your wallet. Resolve disputed escrows below.</div>
+    <div class="section-header">
+      <span class="section-title">Disputed Escrows · ${disputed.length}</span>
+      <button class="section-action" onclick="loadEscrows().then(()=>renderArbitratorPage())">↻ Refresh</button>
+    </div>
+    ${!disputed.length ? `<div class="empty"><div class="empty-icon">⚖</div><div class="empty-title">No active disputes</div><div class="empty-sub">All escrows are clear</div></div>` :
+    disputed.map(e=>`
+      <div class="escrow-card status-disputed">
+        <div class="card-header">
+          <div>
+            <div class="card-meta">ESC-${String(e.id).padStart(4,'0')}</div>
+            <div class="card-title">${e.description}</div>
+          </div>
+          <span class="badge badge-disputed">DISPUTED</span>
+        </div>
+        <div class="card-grid">
+          <div class="card-cell"><div class="cell-label">Amount</div><div class="cell-val white">${e.amount.toFixed(2)} USDC</div></div>
+          <div class="card-cell"><div class="cell-label">Client</div><div class="cell-val" style="font-size:10px;">${e.client.slice(0,10)}...${e.client.slice(-4)}</div></div>
+          <div class="card-cell"><div class="cell-label">Freelancer</div><div class="cell-val" style="font-size:10px;">${e.freelancer.slice(0,10)}...${e.freelancer.slice(-4)}</div></div>
+          <div class="card-cell"><div class="cell-label">Deadline</div><div class="cell-val" style="font-size:11px;">${e.deadline}</div></div>
+        </div>
+        ${e.deliveryLink?`<div class="delivery-link-box"><div class="delivery-link-label">Freelancer Delivery</div><div class="delivery-link-url"><a href="${e.deliveryLink}" target="_blank">${e.deliveryLink}</a></div></div>`:'<div style="font-size:11px;color:var(--white4);margin-bottom:12px;">No delivery submitted by freelancer</div>'}
+        <div class="card-actions">
+          <button class="btn btn-primary" onclick="resolveDispute(${e.id},true)">✓ Favor Freelancer — Pay them</button>
+          <button class="btn btn-danger" onclick="resolveDispute(${e.id},false)">✗ Favor Client — Refund them</button>
+        </div>
+      </div>
+    `).join('')}
+    <div id="arb-tx-bar"></div>`;
+}
+
+// SETTINGS PAGE
+function renderSettings() {
+  return `
+  <div class="about-card">
+    <div class="about-logo-row">
+      <div class="about-mark">C</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="about-name">Clario</span>
+          <span class="about-version">v1.2</span>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--white4);margin-top:2px;">Arc Testnet</div>
+      </div>
+    </div>
+    <div class="about-desc">Clario is a trustless freelance escrow protocol built on Arc — Circle's purpose-built L1 blockchain. It protects both clients and freelancers by locking USDC in a smart contract before work begins. No middleman. No chargebacks. No ghosting. Disputes are settled on-chain by a neutral arbitrator.</div>
+    <div class="about-tags">
+      <span class="about-tag">USDC Escrow</span>
+      <span class="about-tag">Milestone Payments</span>
+      <span class="about-tag">Dispute Resolution</span>
+      <span class="about-tag">Auto-Release</span>
+      <span class="about-tag">Arc Network</span>
+      <span class="about-tag">Circle</span>
+    </div>
+  </div>
+
+  <div class="settings-grid">
+    <div class="settings-card">
+      <div class="settings-card-title">🔗 Wallet Info</div>
+      ${wallet ? `
+        <div class="settings-row">
+          <span class="settings-key">Connected Address</span>
+          <span class="settings-val green">${wallet.slice(0,10)}...${wallet.slice(-6)}</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Network</span>
+          <span class="settings-val green">Arc Testnet</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Chain ID</span>
+          <span class="settings-val">5042002</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-key">Role</span>
+          <span class="settings-val green" style="text-transform:capitalize;">${role}</span>
+        </div>
+      ` : `<div style="text-align:center;padding:20px 0;"><div style="font-size:12px;color:var(--white4);margin-bottom:12px;">No wallet connected</div><button class="btn btn-primary" onclick="connectWallet()">Connect Wallet</button></div>`}
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-card-title">📋 Contract Info</div>
+      <div class="settings-row">
+        <span class="settings-key">Clario Contract</span>
+        <span class="settings-val copy" onclick="copyText('${CONTRACT}')" title="Click to copy">${CONTRACT.slice(0,10)}...${CONTRACT.slice(-6)}</span>
+      </div>
+      <div class="settings-row">
+        <span class="settings-key">USDC Address</span>
+        <span class="settings-val copy" onclick="copyText('${USDC_ADDR}')" title="Click to copy">${USDC_ADDR.slice(0,10)}...${USDC_ADDR.slice(-6)}</span>
+      </div>
+      <div class="settings-row">
+        <span class="settings-key">Protocol Fee</span>
+        <span class="settings-val green">1%</span>
+      </div>
+      <div class="settings-row">
+        <span class="settings-key">Explorer</span>
+        <span class="settings-val"><a href="https://testnet.arcscan.app/address/${CONTRACT}" target="_blank" style="color:var(--green);text-decoration:none;">View on ArcScan ↗</a></span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard!'));
+}
+
+// ── WALLET ───────────────────────────────────────────────────────────
+async function connectWallet() {
+  if (!window.ethereum) return alert("Please install MetaMask to continue");
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    wallet = await signer.getAddress();
+    contract = new ethers.Contract(CONTRACT, ABI, signer);
+    usdc = new ethers.Contract(USDC_ADDR, USDC_ABI, signer);
+
+    // Update sidebar
+    document.getElementById('sidebar-wallet-area').innerHTML = `
+      <div class="wallet-card">
+        <div class="wallet-label">Connected Wallet</div>
+        <div class="wallet-addr">${wallet.slice(0,8)}...${wallet.slice(-6)}</div>
+        <div class="wallet-network">
+          <div class="network-dot"></div>
+          Arc Testnet
+        </div>
+      </div>`;
+
+    // Update topbar
+    document.getElementById('topbar-chip').textContent = wallet.slice(0,6)+'...'+wallet.slice(-4);
+    document.getElementById('topbar-chip').style.display = 'block';
+    document.getElementById('role-toggle').style.display = 'flex';
+
+    // Show arbitrator tab if owner
+    if (wallet.toLowerCase() === ARBITRATOR) {
+      document.getElementById('nav-arbitrator').style.display = 'flex';
+    }
+
     await loadEscrows();
-  }catch(e){ alert(e.reason||e.message); }
-  btn.disabled=false; btn.textContent='→ Lock Funds & Create Escrow';
+    renderPage(currentPage);
+  } catch(e) { alert(e.reason || e.message); }
 }
 
-function openDelivery(id){ activeId=id; document.getElementById('delivery-modal').style.display='flex'; }
-function openDispute(id){ activeId=id; document.getElementById('dispute-modal').style.display='flex'; }
+// ── LOAD ESCROWS ─────────────────────────────────────────────────────
+async function loadEscrows() {
+  if (!contract) return;
+  try {
+    const count = Number(await contract.escrowCount());
+    escrows = [];
+    for (let i = count; i >= 1; i--) {
+      try {
+        const e = await contract.getEscrow(i);
+        escrows.push({
+          id: Number(e.id),
+          client: e.client,
+          freelancer: e.freelancer,
+          amount: Number(ethers.formatUnits(e.amount, USDC_DEC)),
+          deadline: new Date(Number(e.deadline)*1000).toLocaleDateString(),
+          autoReleaseTime: Number(e.autoReleaseTime),
+          status: Number(e.status),
+          description: e.description,
+          deliveryLink: e.deliveryLink
+        });
+      } catch(err) { console.warn(err); }
+    }
+    updateFooter();
+    updateNavBadge();
+  } catch(e) { console.error(e); }
+}
 
-async function submitDelivery(){
-  const link=document.getElementById('delivery-link-input').value.trim();
-  if(!link) return alert("Enter a delivery link");
-  if(!contract) return alert("Wallet not connected. Please reconnect.");
-  const id=activeId;
+function updateFooter() {
+  document.getElementById('platform-footer').style.display = 'flex';
+  document.getElementById('ft-total').textContent = escrows.length;
+  document.getElementById('ft-active').textContent = escrows.filter(e=>e.status===0||e.status===1).length;
+  document.getElementById('ft-completed').textContent = escrows.filter(e=>e.status===2).length;
+  document.getElementById('ft-disputed').textContent = escrows.filter(e=>e.status===3).length;
+}
+
+function updateNavBadge() {
+  if (!wallet) return;
+  const mine = escrows.filter(e=>
+    (e.client.toLowerCase()===wallet.toLowerCase()||e.freelancer.toLowerCase()===wallet.toLowerCase())
+    && (e.status===0||e.status===1)
+  );
+  const badge = document.getElementById('nav-badge');
+  if (mine.length > 0) {
+    badge.textContent = mine.length;
+    badge.style.display = 'inline';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── ROLE ─────────────────────────────────────────────────────────────
+function setRole(r) {
+  role = r;
+  document.getElementById('role-client').className = 'role-btn'+(r==='client'?' active':'');
+  document.getElementById('role-freelancer').className = 'role-btn'+(r==='freelancer'?' active':'');
+  if (currentPage === 'escrows') renderEscrowsPage();
+}
+
+// ── CREATE ESCROW ────────────────────────────────────────────────────
+async function createEscrow() {
+  if (!contract) return alert("Connect wallet first");
+  const desc = document.getElementById('f-desc')?.value.trim();
+  const fl = document.getElementById('f-freelancer')?.value.trim();
+  const amt = document.getElementById('f-amount')?.value.trim();
+  const days = document.getElementById('f-days')?.value.trim();
+  if (!desc||!fl||!amt||!days) return alert("All fields are required");
+
+  const btn = document.getElementById('btn-create');
+  btn.disabled = true; btn.textContent = '// Approving USDC...';
+  try {
+    const amount = ethers.parseUnits(amt, USDC_DEC);
+    const allowance = await usdc.allowance(wallet, CONTRACT);
+    if (allowance < amount) {
+      const tx = await usdc.approve(CONTRACT, amount);
+      await tx.wait();
+    }
+    btn.textContent = '// Creating escrow on Arc...';
+    const tx = await contract.createEscrow(fl, amount, Number(days), desc);
+    const txBar = document.getElementById('create-tx-bar');
+    if (txBar) txBar.innerHTML = `<div class="tx-bar">// tx broadcast → <a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,22)}...${tx.hash.slice(-8)}</a></div>`;
+    await tx.wait();
+    await loadEscrows();
+    navigate('escrows');
+  } catch(e) { alert(e.reason || e.message); }
+  if (btn) { btn.disabled = false; btn.textContent = '→ Lock Funds & Create Escrow'; }
+}
+
+// ── MODALS ───────────────────────────────────────────────────────────
+function openDelivery(id) { activeId=id; document.getElementById('delivery-modal').style.display='flex'; }
+function openDispute(id)  { activeId=id; document.getElementById('dispute-modal').style.display='flex'; }
+function closeModal(id)   { document.getElementById(id).style.display='none'; activeId=null; }
+
+// ── ACTIONS ──────────────────────────────────────────────────────────
+async function submitDelivery() {
+  const link = document.getElementById('delivery-link-input').value.trim();
+  if (!link) return alert("Please enter a delivery link");
+  if (!contract) return alert("Wallet not connected. Please reconnect.");
+  const id = activeId;
   closeModal('delivery-modal');
-  try{
-    const tx=await contract.submitDelivery(id,link);
-    showTx(tx.hash); await tx.wait(); await loadEscrows();
-  }catch(e){ alert(e.reason||e.message); }
-}
-
-async function releasePayment(id){
-  if(!contract) return alert("Wallet not connected. Please reconnect.");
-  try{
-    const tx=await contract.releasePayment(id);
-    showTx(tx.hash); await tx.wait(); await loadEscrows();
-  }catch(e){ alert(e.reason||e.message); }
-}
-
-async function autoRelease(id){
-  if(!contract) return alert("Wallet not connected. Please reconnect.");
-  try{
-    const tx=await contract.autoRelease(id);
-    showTx(tx.hash); await tx.wait(); await loadEscrows();
-  }catch(e){ alert(e.reason||e.message); }
-}
-
-async function raiseDispute(){
-  if(!contract) return alert("Wallet not connected. Please reconnect.");
-  const id=activeId;
-  closeModal('dispute-modal');
-  try{
-    const tx=await contract.raiseDispute(id);
-    showTx(tx.hash); await tx.wait(); await loadEscrows();
-  }catch(e){ alert(e.reason||e.message); }
-}
-
-async function resolveDispute(id,favorFreelancer){
-  if(!contract) return alert("Wallet not connected");
-  const side=favorFreelancer?"freelancer":"client";
-  if(!confirm("Resolve in favor of the "+side+"? This cannot be undone.")) return;
-  try{
-    const tx=await contract.resolveDispute(id,favorFreelancer);
-    showTx(tx.hash); await tx.wait();
+  try {
+    const tx = await contract.submitDelivery(id, link);
+    showTx(tx.hash);
+    await tx.wait();
     await loadEscrows();
-    renderArbitrator();
-    alert("Dispute resolved!");
-  }catch(e){ alert(e.reason||e.message); }
+    renderPage(currentPage);
+  } catch(e) { alert(e.reason || e.message); }
+}
+
+async function releasePayment(id) {
+  if (!contract) return alert("Wallet not connected. Please reconnect.");
+  try {
+    const tx = await contract.releasePayment(id);
+    showTx(tx.hash);
+    await tx.wait();
+    await loadEscrows();
+    renderPage(currentPage);
+  } catch(e) { alert(e.reason || e.message); }
+}
+
+async function autoReleasePayment(id) {
+  if (!contract) return alert("Wallet not connected. Please reconnect.");
+  try {
+    const tx = await contract.autoRelease(id);
+    showTx(tx.hash);
+    await tx.wait();
+    await loadEscrows();
+    renderPage(currentPage);
+  } catch(e) { alert(e.reason || e.message); }
+}
+
+async function raiseDispute() {
+  if (!contract) return alert("Wallet not connected. Please reconnect.");
+  const id = activeId;
+  closeModal('dispute-modal');
+  try {
+    const tx = await contract.raiseDispute(id);
+    showTx(tx.hash);
+    await tx.wait();
+    await loadEscrows();
+    renderPage(currentPage);
+  } catch(e) { alert(e.reason || e.message); }
+}
+
+async function resolveDispute(id, favorFreelancer) {
+  if (!contract) return alert("Wallet not connected");
+  const side = favorFreelancer ? "freelancer" : "client";
+  if (!confirm(`Resolve in favor of the ${side}? This cannot be undone.`)) return;
+  try {
+    const tx = await contract.resolveDispute(id, favorFreelancer);
+    showTx(tx.hash);
+    await tx.wait();
+    await loadEscrows();
+    renderArbitratorPage();
+    alert("Dispute resolved successfully!");
+  } catch(e) { alert(e.reason || e.message); }
+}
+
+function showTx(hash) {
+  const txHTML = `<div class="tx-bar">// tx confirmed on Arc → <a href="https://testnet.arcscan.app/tx/${hash}" target="_blank">${hash.slice(0,24)}...${hash.slice(-8)}</a></div>`;
+  ['escrows-tx-bar','arb-tx-bar','create-tx-bar'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = txHTML;
+  });
+}
+
+// ── MILESTONE TOGGLE ─────────────────────────────────────────────────
+let milestoneEnabled = false;
+function toggleMilestone() {
+  milestoneEnabled = !milestoneEnabled;
+  const inputs = document.getElementById('milestone-inputs');
+  const toggle = document.getElementById('milestone-toggle');
+  const knob = document.getElementById('milestone-knob');
+  if (milestoneEnabled) {
+    inputs.style.display = 'block';
+    toggle.style.background = 'var(--green4)';
+    toggle.style.borderColor = 'var(--green3)';
+    knob.style.background = 'var(--green)';
+    knob.style.left = '20px';
+  } else {
+    inputs.style.display = 'none';
+    toggle.style.background = 'var(--bg3)';
+    toggle.style.borderColor = 'var(--border)';
+    knob.style.background = 'var(--white4)';
+    knob.style.left = '2px';
+  }
+  updateBreakdown();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+navigate('dashboard');
+
+// ── MILESTONE TOGGLE ──────────────────────────────────────────────────
+let milestoneOn = false;
+function toggleMilestone() {
+  milestoneOn = !milestoneOn;
+  const inputs = document.getElementById('milestone-inputs');
+  const knob = document.getElementById('milestone-knob');
+  const toggle = document.getElementById('milestone-toggle');
+  const label = document.getElementById('milestone-toggle-label');
+  if (milestoneOn) {
+    inputs.style.display = 'block';
+    knob.style.left = '20px';
+    knob.style.background = 'var(--green)';
+    toggle.style.background = 'var(--green4)';
+    toggle.style.borderColor = 'var(--green3)';
+    label.textContent = 'On — split payment';
+    label.style.color = 'var(--green)';
+  } else {
+    inputs.style.display = 'none';
+    knob.style.left = '2px';
+    knob.style.background = 'var(--white4)';
+    toggle.style.background = 'var(--bg3)';
+    toggle.style.borderColor = 'var(--border)';
+    label.textContent = 'Off — full payment on delivery';
+    label.style.color = 'var(--white4)';
+  }
+  updateBreakdown();
+}
+
+// ── SIDEBAR TOGGLE ────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const main = document.getElementById('main');
+  sidebar.classList.toggle('collapsed');
+  main.classList.toggle('expanded');
 }
 </script>
+
 </body>
 </html>
